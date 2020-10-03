@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2020/03/25 09:15:27.000.408,=C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2020/03/25 09:30:50.000.897,=C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2020/03/25 09:31:57.000.440,=C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2020/09/11 18:37:38.000.501,=C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2020/09/11 18:48:02.000.720,C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\DelphiSkils\DelphiSkils.dfm=C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\Unit1.dfm</Transaction>
+    <Transaction>2020/09/11 18:48:02.000.720,C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\DelphiSkils\DelphiSkils.pas=C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2020/09/11 19:21:04.000.065,C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\DelphiSkils\Project1.dproj=C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
+    <Transaction>2020/09/22 20:28:30.000.348,=C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\DelphiSkils\Unit1.pas</Transaction>
+    <Transaction>2020/09/22 20:30:00.000.914,C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\DelphiSkils\Unit1.pas=C:\Users\jeanp\Documents\Embarcadero\Studio\Projects\DelphiSkils\Utilitarios.pas</Transaction>
+  </Transactions>
+</BorlandProject>
