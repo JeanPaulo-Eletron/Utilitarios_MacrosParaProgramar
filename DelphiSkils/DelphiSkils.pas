@@ -140,13 +140,13 @@ begin
                         'sc.name as Campo,'+FimLinhaStr+
                         'st.name as Tipo,'+FimLinhaStr+
                         'sc.max_length as tamanho,'+FimLinhaStr+
-                        'case sc.is_identity when 0 then ''NÃO'' else ''SIM'' end as IDENTIDADE'+FimLinhaStr+
+                        'case sc.is_nullable when 0 then ''NÃO'' else ''SIM'' end as PermiteNulo'+FimLinhaStr+
                         'From'+FimLinhaStr+
                         'sys.columns sc'+FimLinhaStr+
                         'Inner Join'+FimLinhaStr+
                         'sys.types st On st.system_type_id = sc.system_type_id and st.user_type_id = sc.user_type_id'+FimLinhaStr+
                         'where sc.name like @pesquisaCampo and ( (object_name(object_id) = @pesquisaTabela) or (object_name(object_id) like (@pesquisaTabela+''_'')))'+FimLinhaStr+
-                        'order by 1, 2';
+                        'order by sc.is_nullable, sc.name';
           Open;
 
           vHDC := GetDC(0);
@@ -164,16 +164,16 @@ begin
           end;
           First;
           X := 1;
-          Canvas.Rectangle(Pt.x,Pt.y,Pt.x + ((TamanhoMaxString + 13) * 5), Pt.y + 10 + (52*RecordCount));
+          Canvas.Rectangle(Pt.x,Pt.y,Pt.x + ((TamanhoMaxString + 15) * 5), Pt.y + 10 + (52*RecordCount));
           Canvas.TextOut(Pt.x,Pt.y, 'TABELA:     ' + FieldByName('Tabela').AsString);
           while not eof do begin
-            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'CAMPO:      ' + FieldByName('Campo').AsString);
+            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'CAMPO:        ' + FieldByName('Campo').AsString);
             Inc(X);
-            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TIPO:       ' + FieldByName('Tipo').AsString);
+            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TIPO:         ' + FieldByName('Tipo').AsString);
             Inc(X);
-            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TAMANHO:    ' + FieldByName('tamanho').AsString);
+            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TAMANHO:      ' + FieldByName('tamanho').AsString);
             Inc(X);
-            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'IDENTIDADE: ' + FieldByName('IDENTIDADE').AsString);
+            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'PERMITE NULO: ' + FieldByName('PermiteNulo').AsString);
             INC(X);
             Next;
           end;
