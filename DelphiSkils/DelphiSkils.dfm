@@ -35,9 +35,10 @@ object FormMain: TFormMain
         Align = alClient
         Caption = 
           'Sobre o bloco de texto Selecionado'#13#10'Control + 0 = Adiciona "+Fim' +
-          'LinhaStr+" e duplica aspas simples '#13#10'Control + 1 = Desfaz o que ' +
-          'o Control + 0 fez'#13#10'Control + 2 = Seta uma region gen'#233'rica sobre'#13 +
-          #10'Control + 3 = Iguala o distanciamento entre os iguais'
+          'LinhaStr+" e duplica aspas simples. '#13#10'Control + 1 = Desfaz o que' +
+          ' o Control + 0 fez.'#13#10'Control + 2 = Seta uma region gen'#233'rica sobr' +
+          'e.'#13#10'Control + 3 = Iguala o distanciamento entre os iguais.'#13#10'Cont' +
+          'rol + 4 = Lista todos os campos da tabela, ignora plural.'
         Font.Charset = ANSI_CHARSET
         Font.Color = clMaroon
         Font.Height = -16
@@ -45,18 +46,14 @@ object FormMain: TFormMain
         Font.Style = [fsBold]
         ParentFont = False
         Layout = tlCenter
-        ExplicitWidth = 484
-        ExplicitHeight = 100
+        ExplicitWidth = 489
+        ExplicitHeight = 120
       end
     end
     object TabSheet2: TTabSheet
       Caption = 'Mouse E Teclado Autom'#225'tizado'
       ImageIndex = 1
       TabVisible = False
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 1080
-      ExplicitHeight = 375
     end
   end
 end

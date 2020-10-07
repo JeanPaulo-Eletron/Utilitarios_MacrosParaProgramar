@@ -3,7 +3,7 @@ unit Utilitarios;
 interface
 
 uses Windows, SysUtils, Generics.Collections,  Classes, JvADOQuery, JvBaseDBThreadedDataset, Data.DB, Vcl.StdCtrls,
-     Data.Win.ADODB, Graphics, Vcl.Forms;
+     Data.Win.ADODB, Graphics, Vcl.Forms, Dialogs;
 
 Type
   TCallBack = reference to procedure;
@@ -81,6 +81,8 @@ Type
   procedure MoverMouse(X, Y: Integer);
   procedure MoverMouseSuavemente(X, Y, Velocidade, Ruido: Integer; CallBack: TCallBack);
 
+  procedure EscreverLivrementeNaTela(Texto: String; Y: Integer);
+  procedure ConfigurarConexao(Alias: TAdoConnection);
 
 //--//--//--//--//--//--//--//--//--//--/EM DESENVOLVIMENTO/--//--//--//--//--//--//--//--//--//--//--//--//
 
@@ -409,6 +411,78 @@ procedure MoverMouse(X, Y: Integer);
 BEGIN
   Mouse_Event(MOUSEEVENTF_ABSOLUTE or MOUSEEVENTF_MOVE, X, Y, 0, 0);
 END;
+
+procedure EscreverLivrementeNaTela(Texto: String; Y: Integer);
+var
+  Canvas : TCanvas;
+  vHDC : HDC;
+  pt: TPoint;
+BEGIN
+  vHDC := GetDC(0);
+  Canvas := TCanvas.Create;
+  Canvas.Handle      := vHDC;
+  Canvas.Pen.Color   := ClRed;
+  Canvas.Brush.Color := ClRed;
+
+  GetCursorPos(pt);
+
+
+  Canvas.Rectangle(Pt.x,Pt.y,Pt.x + Length(Texto) * 5, Pt.y + Y);
+  Canvas.TextOut(Pt.x,Pt.y-10+Y,Texto);
+END;
+
+procedure ConfigurarConexao(Alias: TAdoConnection);
+var TxtFile : TextFile;
+    Txt, LicencaServidor, LicencaDataBase, LicencaSenha, LicencaUsuario, ExePath, CaminhoENomeArquivo : String;
+begin
+  ExePath := ExtractFilePath(Application.ExeName);
+  {$Region 'Se o arquivo "Config.ini" não existir, então crie um com as configurações padrão'}
+    if not FileExists(ExePath+'Config.ini') then begin
+        CaminhoENomeArquivo := ExePath + 'Config.ini';
+        FileSetAttr(CaminhoENomeArquivo, 0);
+        AssignFile(TxtFile, CaminhoENomeArquivo);
+        Rewrite(TxtFile);
+        Writeln(TxtFile,'Servidor        : LAPTOP-GK2QJ6O0');
+        Writeln(TxtFile,'Usuário         : sa');
+        Writeln(TxtFile,'Senha           : senhatst');
+        Writeln(TxtFile,'LicencaDataBase : AmigosFacebook');
+        Writeln(TxtFile,'O Sistema só irá considerar as 4 primeiras linhas e somente o que estiver após o ":",');
+        Writeln(TxtFile,'ele não ira considerar espaços adicionais a direita e esquerda.');
+        CloseFile(TxtFile);
+  //    FileSetAttr(CaminhoENomeArquivo, FileGetAttr(CaminhoENomeArquivo) or faHidden); Descomente caso queira que o .ini fique oculto
+    end;
+  {$EndRegion}
+  Try
+    Alias.Connected   := False;
+    Alias.LoginPrompt := False;
+    AssignFile(TxtFile, ExePath+'Config.ini');
+    Reset(TxtFile);
+    ReadLn(TxtFile, Txt);
+    LicencaServidor := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt) ));
+    ReadLn(TxtFile, Txt);
+    LicencaUsuario  := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt)));
+    ReadLn(TxtFile, Txt);
+    LicencaSenha    := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt)));
+    ReadLn(TxtFile, Txt);
+    LicencaDataBase := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt)));
+    Alias.ConnectionString := 'Provider=SQLOLEDB.1;'+
+                              'Password='+LicencaSenha+';'+
+                              'Persist Security Info=True;'+
+                              'User ID='+LicencaUsuario+';'+
+                              'Initial Catalog='+LicencaDataBase+';'+
+                              'Data Source='+LicencaServidor+';'+
+                              'Use Procedure for Prepare=1;'+
+                              'Auto Translate=True;'+
+                              'Packet Size=4096;'+
+                              'Workstation ID=anonimo;'+
+                              'Use Encryption for Data=False;'+
+                              'Tag with column collation when possible=False';
+    Alias.Connected        := True;
+  Except
+    ShowMessage('Não foi possível conectar ao servidor ! Verifique o arquivo de licença ! ');
+    Abort;
+  end;
+end;
 
 procedure MoverMouseSuavemente(X, Y, Velocidade, Ruido: Integer; CallBack: TCallBack);
 var Xp, Yp, RuidoX, RuidoY: Integer;
