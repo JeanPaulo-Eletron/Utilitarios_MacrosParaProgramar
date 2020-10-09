@@ -2,11 +2,13 @@ unit DelphiSkils;
 
 interface
 
-uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms,  Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls,
-  JvExComCtrls, JvComCtrls, Vcl.Clipbrd,
-  {Units} Utilitarios, Data.DB, Data.Win.ADODB;
+{$Region 'uses'}
+  uses
+    Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+    Vcl.Controls, Vcl.Forms,  Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls,
+    JvExComCtrls, JvComCtrls, Vcl.Clipbrd,
+    Utilitarios, Data.DB, Data.Win.ADODB;
+{$EndRegion}
 
 type
   TFormMain = class(TForm)
@@ -17,17 +19,18 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
 
-  private
-    PassarSQLParaDelphiAtivo: Boolean;
-    InvocarRegionAtivo: Boolean;
-    IdentarAtivo, VerificarCamposDaTabelaAtivo: Boolean;
-    procedure PassarSQLParaDelphi(ChamadaPeloTeclado: Boolean = False);
-    procedure PassarDelphiParaSQL(ChamadaPeloTeclado: Boolean = False);
-    procedure InvocarRegion;
-    procedure Identar;
-    procedure VerificarCamposDaTabela;
+  {$Region 'private'}
+    private
+      PassarSQLParaDelphiAtivo: Boolean;
+      InvocarRegionAtivo: Boolean;
+      IdentarAtivo, VerificarCamposDaTabelaAtivo: Boolean;
+      procedure PassarSQLParaDelphi(ChamadaPeloTeclado: Boolean = False);
+      procedure PassarDelphiParaSQL(ChamadaPeloTeclado: Boolean = False);
+      procedure InvocarRegion;
+      procedure Identar;
+      procedure VerificarCamposDaTabela;
+  {$EndRegion}
   public
-    { Public declarations }
   end;
 
 var
@@ -39,8 +42,10 @@ implementation
 {$R *.dfm}
 
 procedure TFormMain.FormCreate(Sender: TObject);
-var
-  TimerTeclasPressionadas: TTimeOut;
+{$Region 'var ...'}
+  var
+    TimerTeclasPressionadas: TTimeOut;
+{$EndRegion}
 begin
   PassarSQLParaDelphiAtivo     := False;
   InvocarRegionAtivo           := False;  VerificarCamposDaTabelaAtivo := False;  {$Region 'Invocar Timer De Teclas Digitadas'}    TimerTeclasPressionadas    :=    SetInterval(
@@ -68,8 +73,10 @@ begin
   {$EndRegion}end;
 
 procedure TFormMain.VerificarCamposDaTabela;
-var
-  Texto: string;
+{$Region 'var ...'}
+  var
+    Texto: string;
+{$EndRegion}
 begin
   {$Region 'Verificar se já está ativo'}
     if VerificarCamposDaTabelaAtivo
@@ -83,116 +90,189 @@ begin
     SoltarControl;
   {$EndRegion}
 
-
-  SetTimeOut(
-    Procedure
-    var Alias:      TADOConnection;
-        Consultant: TADOQuery;
-        Canvas : TCanvas;
-        vHDC : HDC;
-        pt: TPoint;
-        X: Integer;
-    TamanhoMaxString: integer;
-    begin
-      TRY
-        Texto       := Clipboard.AsText;
-
-        {$Region 'Criar objeto de conexão com o banco'}
-          Alias := TAdoConnection.Create(Application);
-          Alias.Attributes     := [];
-          //Com xaCommitRetaining após commitar ele abre uma nova transação,
-          //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
-          Alias.CommandTimeout := 1;
-          //Se o comando demorar mais de 1 segundos ele aborta
-          Alias.Connected      := False;
-          //A conexão deve vir inicialmente fechada
-          Alias.ConnectionTimeout := 15;
-          //Se demorar mais de 15 segundos para abrir a conexão ele aborta
-          Alias.CursorLocation := clUseServer;
-          //Toda informação ao ser alterada sem commitar vai ficar no servidor.
-          Alias.DefaultDatabase := '';
-          Alias.IsolationLevel := ilReadUncommitted;
-          //Quero saber os campos que ainda não foram commitados também
-          Alias.KeepConnection := True;
-          Alias.LoginPrompt    := False;
-          Alias.Mode           := cmRead;
-          //Somente leitura
-          Alias.Name           := 'VerificarCamposDaTabelaConnection';
-          Alias.Provider       := 'SQLNCLI11.1';
-          Alias.Tag            := 1;
-          //Para indicar que é usado em VerificarCamposDaTabela
+  {$Region 'Realiza consulta para trazer dados da tabela ou campo informado'}
+    SetTimeOut(
+      Procedure
+      {$Region 'Var ...'}
+        var Alias:      TADOConnection;
+            Consultant: TADOQuery;
+            Canvas : TCanvas;
+            vHDC : HDC;
+            pt: TPoint;
+            X: Integer;
+            TamanhoMaxString: integer;
+            SELECT: String;
+            TABELAOUCAMPO: String;
+            Thread: TThread;
+      {$EndRegion}
+      begin
+        {$Region 'Cria Thread para realizar a consulta para caso ela for muito grande não fique aparente ao usuário(não usei os eventos da AdoQuery pois daria mais trabalho de vincular.'}
+          Thread := TThread.CreateAnonymousThread(
+          procedure
+          begin
+            TRY
+              Texto       := Clipboard.AsText;
+    
+              {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
+                Thread.Synchronize(Thread, Procedure begin Alias := TAdoConnection.Create(Application); end);
+                Alias.Attributes     := [];
+                //Com xaCommitRetaining após commitar ele abre uma nova transação,
+                //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
+                Alias.CommandTimeout := 1;
+                //Se o comando demorar mais de 1 segundos ele aborta
+                Alias.Connected      := False;
+                //A conexão deve vir inicialmente fechada
+                Alias.ConnectionTimeout := 15;
+                //Se demorar mais de 15 segundos para abrir a conexão ele aborta
+                Alias.CursorLocation := clUseServer;
+                //Toda informação ao ser alterada sem commitar vai ficar no servidor.
+                Alias.DefaultDatabase := '';
+                Alias.IsolationLevel := ilReadUncommitted;
+                //Quero saber os campos que ainda não foram commitados também
+                Alias.KeepConnection := True;
+                Alias.LoginPrompt    := False;
+                Alias.Mode           := cmRead;
+                //Somente leitura
+                Alias.Name           := 'VerificarCamposDaTabelaConnection';
+                Alias.Provider       := 'SQLNCLI11.1';
+                Alias.Tag            := 1;
+                //Para indicar que é usado em VerificarCamposDaTabela
+    
+                ConfigurarConexao(Alias);
+                Thread.Synchronize(Thread, Procedure begin Alias.Connected        := True; end);
+              {$EndRegion}
+    
+              {$Region 'Realiza consulta e escreve dados na tela'}
+                Consultant := TAdoQuery.Create(Application);
+                with consultant do begin
+                  Close;
+                  Connection := Alias;
+                  TABELAOUCAMPO := 'TABELA';
+                  {$Region 'Montar SELECT'}
+                    SELECT        := 'Select'+FimLinhaStr+
+                                     'object_name(object_id) as Tabela,'+FimLinhaStr+
+                                     'sc.name as Campo,'+FimLinhaStr+
+                                     'st.name as Tipo,'+FimLinhaStr+
+                                     'sc.max_length as tamanho,'+FimLinhaStr+
+                                     'case sc.is_nullable when 0 then ''NÃO'' else ''SIM'' end as PermiteNulo'+FimLinhaStr+
+                                     'From'+FimLinhaStr+
+                                     'sys.columns sc'+FimLinhaStr+
+                                     'Inner Join'+FimLinhaStr+
+                                     'sys.types st On st.system_type_id = sc.system_type_id and st.user_type_id = sc.user_type_id'+FimLinhaStr+
+                                     'where sc.name like @pesquisaCampo and ( (object_name(object_id) = @pesquisaTabela) or (object_name(object_id) like (@pesquisaTabela+''_'')))'+FimLinhaStr+
+                                     'order by sc.is_nullable, sc.name';
+                  {$EndRegion}
+      
+                  {$Region 'Colocar SELECT NA QUERY'}
+                    SQL.Text      := 'declare @pesquisaCampo varchar(100)'+FimLinhaStr+
+                                     'declare @pesquisaTabela varchar(100)'+FimLinhaStr+
+                                     'set @pesquisaCampo  = ''%'''+FimLinhaStr+
+                                     'set @pesquisaTabela = '''+Texto+''''+FimLinhaStr+
+                                     ''+FimLinhaStr+
+                                     SELECT;
+                  {$EndRegion}
+      
+                  Open;
+                  {$Region 'Se não retornar nada, tentar fazer o mesmo considerando ele como campo ao invés de tabela'}
+                    if IsEmpty then begin
+                      TABELAOUCAMPO := 'CAMPO';
+                      SQL.Text      := 'declare @pesquisaCampo varchar(100)'+FimLinhaStr+
+                                       'declare @pesquisaTabela varchar(100)'+FimLinhaStr+
+                                       'set @pesquisaTabela = ''%'''+FimLinhaStr+
+                                       'set @pesquisaCampo  = '''+Texto+''''+FimLinhaStr+
+                                       ''+FimLinhaStr+
+                                       SELECT;
+                      Open;
+                    end;
+                  {$EndRegion}
+                
+      
+                  {$Region 'Configura canvas'}
+                    vHDC := GetDC(0);
+                    Canvas := TCanvas.Create;
+                    Canvas.Handle      := vHDC;
+                    Canvas.Pen.Color   := ClRed;
+                    Canvas.Brush.Color := ClRed;
+                    GetCursorPos(pt);
+                  {$EndRegion}
+                  {$Region 'Ir ao primeiro registro retornado pela consulta'}
+                    First;
+                  {$EndRegion}
+      
+                  {$Region 'Localiza tamanho máximo das strings retornadas, para que com isso seja possivel definir o tamanho do retangulo'}
+                    TamanhoMaxString := Length(FieldByName('Tabela').AsString);
+                    while not eof do begin
+                      if Length(FieldByName('Campo').AsString) > TamanhoMaxString
+                        then TamanhoMaxString := Length(FieldByName('Campo').AsString);
+                      Next;
+                    end;
+                  {$EndRegion}
+      
+                  {$Region 'Ir ao primeiro registro retornado pela consulta'}
+                    First;
+                  {$EndRegion}
+      
+                  {$Region 'Desenha o retangulo na tela'}
+                    X := 1;
+                    Canvas.Rectangle(Pt.x,Pt.y,Pt.x + ((TamanhoMaxString + 15) * 5), Pt.y + 10 + (52*RecordCount));
+                  {$EndRegion}   
+                
+                  {$Region 'Escreve dados das tabelas/campos na tela'}
+                    {$Region 'Escreve dados sobre a Tabela ou Campo base da consulta'}
+                      if TABELAOUCAMPO = 'TABELA'
+                        then Canvas.TextOut(Pt.x,Pt.y,              'TABELA:        ' + FieldByName('Tabela').AsString)
+                        else Canvas.TextOut(Pt.x,Pt.y,              'CAMPO:         ' + FieldByName('Campo').AsString);
+                    {$EndRegion}
+                    while not eof do begin
+                      {$Region 'Escreve os dados'}
+                        if TABELAOUCAMPO = 'TABELA'
+                          then Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'CAMPO:         ' + FieldByName('Campo').AsString)
+                          else Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TABELA:        ' + FieldByName('Tabela').AsString);
+                        Inc(X);
+                        Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TIPO:         ' + FieldByName('Tipo').AsString);
+                        Inc(X);
+                        Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TAMANHO:      ' + FieldByName('tamanho').AsString);
+                        Inc(X);
+                        Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'PERMITE NULO: ' + FieldByName('PermiteNulo').AsString);
+                        INC(X);
+                      {$EndRegion}
+                    
+                      {$Region 'Vai ao próximo registro'}
+                        Next;
+                      {$EndRegion}
+                    end;
+                  {$EndRegion}
+      
+                  {$Region 'Libera objeto Query da memória'}
+                    Free;
+                  {$EndRegion}
+                end;
+              {$EndRegion}
+    
+              {$Region 'Libera objeto de conexão da memória'}
+                Thread.Synchronize(Thread, Procedure Begin Alias.Free; end);
+              {$EndRegion}
+            FINALLY
+              Thread.Synchronize(Thread, 
+              procedure begin 
+                {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
+                  SetTimeOut(
+                    Procedure
+                    begin
+                      VerificarCamposDaTabelaAtivo := False;
+                    End,
+                  1000);
+                {$EndRegion}
+              end);
+            END;
+    
+          end
+          );
+          Thread.Start;
         {$EndRegion}
-
-        ConfigurarConexao(Alias);
-
-        Consultant := TAdoQuery.Create(Application);
-        with consultant do begin
-          Close;
-          Connection := Alias;
-          SQL.Text   := 'declare @pesquisaCampo varchar(100)'+FimLinhaStr+
-                        'declare @pesquisaTabela varchar(100)'+FimLinhaStr+
-                        'set @pesquisaCampo  = ''%'''+FimLinhaStr+
-                        'set @pesquisaTabela = '''+Texto+''''+FimLinhaStr+
-                        '--set @pesquisaTabela = '''''+FimLinhaStr+
-                        ''+FimLinhaStr+
-                        'Select'+FimLinhaStr+
-                        'object_name(object_id) as Tabela,'+FimLinhaStr+
-                        'sc.name as Campo,'+FimLinhaStr+
-                        'st.name as Tipo,'+FimLinhaStr+
-                        'sc.max_length as tamanho,'+FimLinhaStr+
-                        'case sc.is_nullable when 0 then ''NÃO'' else ''SIM'' end as PermiteNulo'+FimLinhaStr+
-                        'From'+FimLinhaStr+
-                        'sys.columns sc'+FimLinhaStr+
-                        'Inner Join'+FimLinhaStr+
-                        'sys.types st On st.system_type_id = sc.system_type_id and st.user_type_id = sc.user_type_id'+FimLinhaStr+
-                        'where sc.name like @pesquisaCampo and ( (object_name(object_id) = @pesquisaTabela) or (object_name(object_id) like (@pesquisaTabela+''_'')))'+FimLinhaStr+
-                        'order by sc.is_nullable, sc.name';
-          Open;
-
-          vHDC := GetDC(0);
-          Canvas := TCanvas.Create;
-          Canvas.Handle      := vHDC;
-          Canvas.Pen.Color   := ClRed;
-          Canvas.Brush.Color := ClRed;
-          GetCursorPos(pt);
-          First;
-          TamanhoMaxString := Length(FieldByName('Tabela').AsString);
-          while not eof do begin
-            if Length(FieldByName('Campo').AsString) > TamanhoMaxString
-              then TamanhoMaxString := Length(FieldByName('Campo').AsString);
-            Next;
-          end;
-          First;
-          X := 1;
-          Canvas.Rectangle(Pt.x,Pt.y,Pt.x + ((TamanhoMaxString + 15) * 5), Pt.y + 10 + (52*RecordCount));
-          Canvas.TextOut(Pt.x,Pt.y, 'TABELA:     ' + FieldByName('Tabela').AsString);
-          while not eof do begin
-            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'CAMPO:        ' + FieldByName('Campo').AsString);
-            Inc(X);
-            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TIPO:         ' + FieldByName('Tipo').AsString);
-            Inc(X);
-            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TAMANHO:      ' + FieldByName('tamanho').AsString);
-            Inc(X);
-            Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'PERMITE NULO: ' + FieldByName('PermiteNulo').AsString);
-            INC(X);
-            Next;
-          end;
-          Free;
-        end;
-
-        Alias.Free;
-      FINALLY
-        {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
-          SetTimeOut(
-            Procedure
-            begin
-              VerificarCamposDaTabelaAtivo := False;
-            End,
-          1000);
-        {$EndRegion}
-      END;
-    End,
-  100);
+      End,
+    100);
+  {$EndRegion}
 end;
 
 procedure TFormMain.Identar;
@@ -202,7 +282,7 @@ begin
       then Exit;
     IdentarAtivo := True;
   {$EndRegion}
-
+  
   {$Region 'Control + C'}
     PressionarControlEManter;
     PressionarTeclaC;
@@ -213,15 +293,15 @@ begin
     SetTimeOut(
       Procedure
       var Texto, TextoFinal, TextoParcial: String;
-          QtdeMaxDeCaracteresAteODoisPontosIgual, CharCountDaLinha : integer;
-          Char_ : Char;
+          QtdeMaxDeCaracteresAteODoisPontosIgual, CharCountDaLinha:  integer;
+          Char_:  Char;
           I, DepoisDo13: Integer;
           EncontrouDuploPonto: Boolean;
           TextoParcialAteODuploPonto: String;
           TextoParcialDepoisDoDuploPonto: String;
           EncontrouOperadorIgualNaLinha: Boolean;
-    EncontrouEspaço: Boolean;
-    NroEspacos: Integer;
+          EncontrouEspaço: Boolean;
+          NroEspacos: Integer;
       begin
         Texto       := Clipboard.AsText;
         TextoFinal  := '';
@@ -251,11 +331,13 @@ begin
                   else
                 if EncontrouEspaço
                   then begin
+                    if EncontrouDuploPonto
+                      then TextoFinal := TextoFinal + ':';
                     for I := 1 to NroEspacos
-                      do TextoFinal := TextoFinal + ' ';
-                    TextoFinal      := TextoFinal + Char_;
-                    NroEspacos      := 0;
-                    EncontrouEspaço := False;
+                      do TextoFinal   := TextoFinal + ' ';
+                    TextoFinal        := TextoFinal + Char_;
+                    NroEspacos        := 0;
+                    EncontrouEspaço   := False;
                   end
                   else begin
                     EncontrouDuploPonto := False;
@@ -362,54 +444,66 @@ begin
 end;
 
 procedure TFormMain.InvocarRegion;
-var Texto, TextoFinal, identamento : String;
-    EncontrouTexto: Boolean;
+{$Region 'var ...'}
+  var Texto, TextoFinal, identamento : String;
+      EncontrouTexto: Boolean;
+{$EndRegion}
 begin
-  if InvocarRegionAtivo
-    then Exit;
-  InvocarRegionAtivo := True;
+  {$Region 'Verifica se essa funcionalidade já está ativa, ela não pode ser chamada várias vezes seguida'}
+    if InvocarRegionAtivo
+      then Exit;
+    InvocarRegionAtivo := True;
+  {$EndRegion}
 
-  PressionarControlEManter;
-  PressionarTeclaC;
-  SoltarControl;
-  SetTimeOut(
-    Procedure
-    var i : integer;
-        Char_ : Char;
-    begin
-      Texto       := Clipboard.AsText;
-      TextoFinal  := '';
-      for i := 1 to Length(Texto)-Length(Trim(Texto))-2
-        do identamento  := identamento + ' ';
-      Texto       := identamento + '{$Region ''Procedimentos''}'+FimLinhaStr
-                                 +    Texto+FimLinhaStr+
-                     identamento + '{$EndRegion}';
+  {$Region 'Control C'}
+    PressionarControlEManter;
+    PressionarTeclaC;
+    SoltarControl;
+  {$EndRegion}
 
-      EncontrouTexto         := False;      for char_ in Texto do begin
-        if (char_ <> ' ') and not (EncontrouTexto)
-          then begin
-            TextoFinal       := TextoFinal + '  ' + char_;            EncontrouTexto   := True;          end
-          else
-        if char_ = #10
-          then begin
-            TextoFinal     := TextoFinal + char_;            EncontrouTexto := False;          end          else TextoFinal  := TextoFinal + char_;      end;
-      ClipBoard.AsText     := TextoFinal;
-      SetTimeOut(
-        Procedure
-        begin
-          PressionarControlEManter;
-          PressionarTeclaV;
-          SoltarControl;
-        End,
-      100);
-    End,
-  100);
-  SetTimeOut(
-    Procedure
-    begin
-      InvocarRegionAtivo := False;
-    End,
-  1000);
+  {$Region 'Coloca a region'}
+    SetTimeOut(
+      Procedure
+      var i : integer;
+          Char_ : Char;
+      begin
+        Texto       := Clipboard.AsText;
+        TextoFinal  := '';
+        for i := 1 to Length(Texto)-Length(Trim(Texto))-2
+          do identamento  := identamento + ' ';
+        Texto       := identamento + '{$Region ''Procedimentos''}'+FimLinhaStr
+                                   +    Texto+FimLinhaStr+
+                       identamento + '{$EndRegion}';
+  
+        EncontrouTexto         := False;      for char_ in Texto do begin
+          if (char_ <> ' ') and not (EncontrouTexto)
+            then begin
+              TextoFinal       := TextoFinal + '  ' + char_;            EncontrouTexto   := True;          end
+            else
+          if char_ = #10
+            then begin
+              TextoFinal     := TextoFinal + char_;            EncontrouTexto := False;          end          else TextoFinal  := TextoFinal + char_;      end;
+        ClipBoard.AsText     := TextoFinal;
+        SetTimeOut(
+          Procedure
+          begin
+            PressionarControlEManter;
+            PressionarTeclaV;
+            SoltarControl;
+          End,
+        100);
+      End,
+    100);
+  {$EndRegion}
+
+  {$Region 'Reabilita o uso da funcionalidade'}
+    SetTimeOut(
+      Procedure
+      begin
+        InvocarRegionAtivo := False;
+      End,
+    1000);
+  {$EndRegion}
 end;
 
 procedure TFormMain.FormShow(Sender: TObject);
@@ -420,106 +514,130 @@ begin
 end;
 
 procedure TFormMain.PassarSQLParaDelphi(ChamadaPeloTeclado: Boolean = False);
-var
-  Linha, Linha_, Texto, Texto_: String;
-  char_: char;
+{$Region 'var ...'}
+  var
+    Linha, Linha_, Texto, Texto_: String;
+    char_: char;
+{$EndRegion}
 begin
-  if PassarSQLParaDelphiAtivo
-    then Exit;
-  PassarSQLParaDelphiAtivo := True;
+  {$Region 'Verifica se funcionalidade já não foi chamada para evitar reuso'}
+    if PassarSQLParaDelphiAtivo
+      then Exit;
+    PassarSQLParaDelphiAtivo := True;
+  {$EndRegion}
 
-  PressionarControlEManter;
-  PressionarTeclaC;
-  SoltarControl;
-  SetTimeOut(
-    Procedure
-    var char_: char;
-    begin
-      Texto             := ClipBoard.AsText;
-      Texto_            := '''';      for char_ in Texto do begin
-        if char_ = ''''
-          then Texto_   := Texto_ + ''''''          else
-        if char_ = #13
-          then Texto_   := Texto_ + '''+FimLinhaStr+' + #13          else
-        if char_ = #10
-          then Texto_   := Texto_ + #10 + ''''          else Texto_   := Texto_ + char_;      end;
-      ClipBoard.AsText  := Texto_ + '''+FimLinhaStr+' + #13;
-      SetTimeOut(
-        Procedure
-        begin
-          PressionarControlEManter;
-          PressionarTeclaV;
-          SoltarControl;
-        End,
-      100);
-    End,
-  100);
-  SetTimeOut(
-    Procedure
-    begin
-      PassarSQLParaDelphiAtivo := False;
-    End,
-  1000);
+  {$Region 'Control C'}
+    PressionarControlEManter;
+    PressionarTeclaC;
+    SoltarControl;
+  {$EndRegion}
+
+  {$Region 'Passa o SQL para Delphi'}
+    SetTimeOut(
+      Procedure
+      var char_: char;
+      begin
+        Texto             := ClipBoard.AsText;
+        Texto_            := '''';      for char_ in Texto do begin
+          if char_ = ''''
+            then Texto_   := Texto_ + ''''''          else
+          if char_ = #13
+            then Texto_   := Texto_ + '''+FimLinhaStr+' + #13          else
+          if char_ = #10
+            then Texto_   := Texto_ + #10 + ''''          else Texto_   := Texto_ + char_;      end;
+        ClipBoard.AsText  := Texto_ + '''+FimLinhaStr+' + #13;
+        SetTimeOut(
+          Procedure
+          begin
+            PressionarControlEManter;
+            PressionarTeclaV;
+            SoltarControl;
+          End,
+        100);
+      End,
+    100);
+  {$EndRegion}
+
+  {$Region 'Reabilita funcionalidade'}
+    SetTimeOut(
+      Procedure
+      begin
+        PassarSQLParaDelphiAtivo := False;
+      End,
+    1000);
+  {$EndRegion}
 end;
 
 procedure TFormMain.PassarDelphiParaSQL(ChamadaPeloTeclado: Boolean = False);
-var
-  Linha, Linha_, Texto, TextoFinal: String;
-  char_: char;
-  consecutivo: Boolean;
-  Strings: TStrings;
+{$Region 'var ...'}
+  var
+    Linha, Linha_, Texto, TextoFinal: String;
+    char_: char;
+    consecutivo: Boolean;
+    Strings: TStrings;
+{$EndRegion}
 begin
-  if PassarSQLParaDelphiAtivo
-    then Exit;
-  PassarSQLParaDelphiAtivo   := True;
-  PressionarControlEManter;
-  PressionarTeclaC;
-  SoltarControl;
-  SetTimeOut(
-    Procedure
-    var char_: char;
-        Linha_: String;
-    begin
-      Texto              := Clipboard.AsText;      TextoFinal         := '';
-      consecutivo        := True;      for char_ in Texto do begin
-        if (char_ = '''') and (not Consecutivo)
-          then begin
-            TextoFinal   := TextoFinal + '''';            consecutivo  := True;          end
-          else
-        if (char_ = '''') and (Consecutivo)
-          then begin
-            consecutivo  := False;          end
-          else
-        if char_ = #10
-          then begin
-            consecutivo  := True;          end
-          else
-        if char_ = #13
-          then begin
-            TextoFinal   := Copy(TRIM(TextoFinal),1,Length(TRIM(TextoFinal))-14) +FimLinhaStr;            consecutivo  := false;          end
-          else begin
-            TextoFinal   := TextoFinal + char_;            consecutivo  := False;          end
-      end;
+  {$Region 'Verificar se funcionalidade ja não foi chamada'}
+    if PassarSQLParaDelphiAtivo
+      then Exit;
+    PassarSQLParaDelphiAtivo   := True;
+  {$EndRegion}
 
-      ClipBoard.AsText   := TextoFinal;
+  {$Region 'Control C'}
+    PressionarControlEManter;
+    PressionarTeclaC;
+    SoltarControl;
+  {$EndRegion}
 
-      SetTimeOut(
-        Procedure
-        begin
-          PressionarControlEManter;
-          PressionarTeclaV;
-          SoltarControl;
-        End,
-      100);
-    End,
-  100);
+  {$Region 'Passa o delphi para SQL'}
+    SetTimeOut(
+      Procedure
+      var char_: char;
+          Linha_: String;
+      begin
+        Texto              := Clipboard.AsText;      TextoFinal         := '';
+        consecutivo        := True;      for char_ in Texto do begin
+          if (char_ = '''') and (not Consecutivo)
+            then begin
+              TextoFinal   := TextoFinal + '''';            consecutivo  := True;          end
+            else
+          if (char_ = '''') and (Consecutivo)
+            then begin
+              consecutivo  := False;          end
+            else
+          if char_ = #10
+            then begin
+              consecutivo  := True;          end
+            else
+          if char_ = #13
+            then begin
+              TextoFinal   := Copy(TRIM(TextoFinal),1,Length(TRIM(TextoFinal))-14) +FimLinhaStr;            consecutivo  := false;          end
+            else begin
+              TextoFinal   := TextoFinal + char_;            consecutivo  := False;          end
+        end;
+  
+        ClipBoard.AsText   := TextoFinal;
+  
+        SetTimeOut(
+          Procedure
+          begin
+            PressionarControlEManter;
+            PressionarTeclaV;
+            SoltarControl;
+          End,
+        100);
+      End,
+    100);
+  {$EndRegion}
 
-  SetTimeOut(
-    Procedure
-    begin
-      PassarSQLParaDelphiAtivo := False;
-    End,
-  2000);
+  {$Region 'Seta timer para reabilitar uso da funcionalidade'}
+    SetTimeOut(
+      Procedure
+      begin
+        PassarSQLParaDelphiAtivo := False;
+      End,
+    2000);
+  {$EndRegion}
 end;
 
 end.

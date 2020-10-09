@@ -477,7 +477,6 @@ begin
                               'Workstation ID=anonimo;'+
                               'Use Encryption for Data=False;'+
                               'Tag with column collation when possible=False';
-    Alias.Connected        := True;
   Except
     ShowMessage('Não foi possível conectar ao servidor ! Verifique o arquivo de licença ! ');
     Abort;
