@@ -25,12 +25,8 @@ object FormMain: TFormMain
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 534
-    ExplicitHeight = 161
     object TabSheet1: TTabSheet
       Caption = 'Atalhos do teclado'
-      ExplicitWidth = 526
-      ExplicitHeight = 133
       object Label1: TLabel
         Left = 0
         Top = 0
@@ -59,6 +55,8 @@ object FormMain: TFormMain
       Caption = 'Mouse E Teclado Autom'#225'tizado'
       ImageIndex = 1
       TabVisible = False
+      ExplicitLeft = 0
+      ExplicitTop = 0
       ExplicitWidth = 526
       ExplicitHeight = 133
     end

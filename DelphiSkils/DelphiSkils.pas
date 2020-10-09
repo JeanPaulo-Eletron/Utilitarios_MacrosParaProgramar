@@ -72,209 +72,6 @@ begin
     10);
   {$EndRegion}end;
 
-procedure TFormMain.VerificarCamposDaTabela;
-{$Region 'var ...'}
-  var
-    Texto: string;
-{$EndRegion}
-begin
-  {$Region 'Verificar se já está ativo'}
-    if VerificarCamposDaTabelaAtivo
-      then Exit;
-    VerificarCamposDaTabelaAtivo := True;
-  {$EndRegion}
-
-  {$Region 'Control + C'}
-    PressionarControlEManter;
-    PressionarTeclaC;
-    SoltarControl;
-  {$EndRegion}
-
-  {$Region 'Realiza consulta para trazer dados da tabela ou campo informado'}
-    SetTimeOut(
-      Procedure
-      {$Region 'Var ...'}
-        var Alias:      TADOConnection;
-            Consultant: TADOQuery;
-            Canvas : TCanvas;
-            vHDC : HDC;
-            pt: TPoint;
-            X: Integer;
-            TamanhoMaxString: integer;
-            SELECT: String;
-            TABELAOUCAMPO: String;
-            Thread: TThread;
-      {$EndRegion}
-      begin
-        {$Region 'Cria Thread para realizar a consulta para caso ela for muito grande não fique aparente ao usuário(não usei os eventos da AdoQuery pois daria mais trabalho de vincular.'}
-          Thread := TThread.CreateAnonymousThread(
-          procedure
-          begin
-            TRY
-              Texto       := Clipboard.AsText;
-    
-              {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
-                Thread.Synchronize(Thread, Procedure begin Alias := TAdoConnection.Create(Application); end);
-                Alias.Attributes     := [];
-                //Com xaCommitRetaining após commitar ele abre uma nova transação,
-                //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
-                Alias.CommandTimeout := 1;
-                //Se o comando demorar mais de 1 segundos ele aborta
-                Alias.Connected      := False;
-                //A conexão deve vir inicialmente fechada
-                Alias.ConnectionTimeout := 15;
-                //Se demorar mais de 15 segundos para abrir a conexão ele aborta
-                Alias.CursorLocation := clUseServer;
-                //Toda informação ao ser alterada sem commitar vai ficar no servidor.
-                Alias.DefaultDatabase := '';
-                Alias.IsolationLevel := ilReadUncommitted;
-                //Quero saber os campos que ainda não foram commitados também
-                Alias.KeepConnection := True;
-                Alias.LoginPrompt    := False;
-                Alias.Mode           := cmRead;
-                //Somente leitura
-                Alias.Name           := 'VerificarCamposDaTabelaConnection';
-                Alias.Provider       := 'SQLNCLI11.1';
-                Alias.Tag            := 1;
-                //Para indicar que é usado em VerificarCamposDaTabela
-    
-                ConfigurarConexao(Alias);
-                Thread.Synchronize(Thread, Procedure begin Alias.Connected        := True; end);
-              {$EndRegion}
-    
-              {$Region 'Realiza consulta e escreve dados na tela'}
-                Consultant := TAdoQuery.Create(Application);
-                with consultant do begin
-                  Close;
-                  Connection := Alias;
-                  TABELAOUCAMPO := 'TABELA';
-                  {$Region 'Montar SELECT'}
-                    SELECT        := 'Select'+FimLinhaStr+
-                                     'object_name(object_id) as Tabela,'+FimLinhaStr+
-                                     'sc.name as Campo,'+FimLinhaStr+
-                                     'st.name as Tipo,'+FimLinhaStr+
-                                     'sc.max_length as tamanho,'+FimLinhaStr+
-                                     'case sc.is_nullable when 0 then ''NÃO'' else ''SIM'' end as PermiteNulo'+FimLinhaStr+
-                                     'From'+FimLinhaStr+
-                                     'sys.columns sc'+FimLinhaStr+
-                                     'Inner Join'+FimLinhaStr+
-                                     'sys.types st On st.system_type_id = sc.system_type_id and st.user_type_id = sc.user_type_id'+FimLinhaStr+
-                                     'where sc.name like @pesquisaCampo and ( (object_name(object_id) = @pesquisaTabela) or (object_name(object_id) like (@pesquisaTabela+''_'')))'+FimLinhaStr+
-                                     'order by sc.is_nullable, sc.name';
-                  {$EndRegion}
-      
-                  {$Region 'Colocar SELECT NA QUERY'}
-                    SQL.Text      := 'declare @pesquisaCampo varchar(100)'+FimLinhaStr+
-                                     'declare @pesquisaTabela varchar(100)'+FimLinhaStr+
-                                     'set @pesquisaCampo  = ''%'''+FimLinhaStr+
-                                     'set @pesquisaTabela = '''+Texto+''''+FimLinhaStr+
-                                     ''+FimLinhaStr+
-                                     SELECT;
-                  {$EndRegion}
-      
-                  Open;
-                  {$Region 'Se não retornar nada, tentar fazer o mesmo considerando ele como campo ao invés de tabela'}
-                    if IsEmpty then begin
-                      TABELAOUCAMPO := 'CAMPO';
-                      SQL.Text      := 'declare @pesquisaCampo varchar(100)'+FimLinhaStr+
-                                       'declare @pesquisaTabela varchar(100)'+FimLinhaStr+
-                                       'set @pesquisaTabela = ''%'''+FimLinhaStr+
-                                       'set @pesquisaCampo  = '''+Texto+''''+FimLinhaStr+
-                                       ''+FimLinhaStr+
-                                       SELECT;
-                      Open;
-                    end;
-                  {$EndRegion}
-                
-      
-                  {$Region 'Configura canvas'}
-                    vHDC := GetDC(0);
-                    Canvas := TCanvas.Create;
-                    Canvas.Handle      := vHDC;
-                    Canvas.Pen.Color   := ClRed;
-                    Canvas.Brush.Color := ClRed;
-                    GetCursorPos(pt);
-                  {$EndRegion}
-                  {$Region 'Ir ao primeiro registro retornado pela consulta'}
-                    First;
-                  {$EndRegion}
-      
-                  {$Region 'Localiza tamanho máximo das strings retornadas, para que com isso seja possivel definir o tamanho do retangulo'}
-                    TamanhoMaxString := Length(FieldByName('Tabela').AsString);
-                    while not eof do begin
-                      if Length(FieldByName('Campo').AsString) > TamanhoMaxString
-                        then TamanhoMaxString := Length(FieldByName('Campo').AsString);
-                      Next;
-                    end;
-                  {$EndRegion}
-      
-                  {$Region 'Ir ao primeiro registro retornado pela consulta'}
-                    First;
-                  {$EndRegion}
-      
-                  {$Region 'Desenha o retangulo na tela'}
-                    X := 1;
-                    Canvas.Rectangle(Pt.x,Pt.y,Pt.x + ((TamanhoMaxString + 15) * 5), Pt.y + 10 + (52*RecordCount));
-                  {$EndRegion}   
-                
-                  {$Region 'Escreve dados das tabelas/campos na tela'}
-                    {$Region 'Escreve dados sobre a Tabela ou Campo base da consulta'}
-                      if TABELAOUCAMPO = 'TABELA'
-                        then Canvas.TextOut(Pt.x,Pt.y,              'TABELA:        ' + FieldByName('Tabela').AsString)
-                        else Canvas.TextOut(Pt.x,Pt.y,              'CAMPO:         ' + FieldByName('Campo').AsString);
-                    {$EndRegion}
-                    while not eof do begin
-                      {$Region 'Escreve os dados'}
-                        if TABELAOUCAMPO = 'TABELA'
-                          then Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'CAMPO:         ' + FieldByName('Campo').AsString)
-                          else Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TABELA:        ' + FieldByName('Tabela').AsString);
-                        Inc(X);
-                        Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TIPO:         ' + FieldByName('Tipo').AsString);
-                        Inc(X);
-                        Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TAMANHO:      ' + FieldByName('tamanho').AsString);
-                        Inc(X);
-                        Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'PERMITE NULO: ' + FieldByName('PermiteNulo').AsString);
-                        INC(X);
-                      {$EndRegion}
-                    
-                      {$Region 'Vai ao próximo registro'}
-                        Next;
-                      {$EndRegion}
-                    end;
-                  {$EndRegion}
-      
-                  {$Region 'Libera objeto Query da memória'}
-                    Free;
-                  {$EndRegion}
-                end;
-              {$EndRegion}
-    
-              {$Region 'Libera objeto de conexão da memória'}
-                Thread.Synchronize(Thread, Procedure Begin Alias.Free; end);
-              {$EndRegion}
-            FINALLY
-              Thread.Synchronize(Thread, 
-              procedure begin 
-                {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
-                  SetTimeOut(
-                    Procedure
-                    begin
-                      VerificarCamposDaTabelaAtivo := False;
-                    End,
-                  1000);
-                {$EndRegion}
-              end);
-            END;
-    
-          end
-          );
-          Thread.Start;
-        {$EndRegion}
-      End,
-    100);
-  {$EndRegion}
-end;
-
 procedure TFormMain.Identar;
 begin
   {$Region 'Verificar se já está ativo'}
@@ -637,6 +434,220 @@ begin
         PassarSQLParaDelphiAtivo := False;
       End,
     2000);
+  {$EndRegion}
+
+end;
+
+procedure TFormMain.VerificarCamposDaTabela;
+{$Region 'var ...'}
+  var
+    Texto: string;
+{$EndRegion}
+begin
+  {$Region 'Verificar se já está ativo'}
+    if VerificarCamposDaTabelaAtivo
+      then Exit;
+    VerificarCamposDaTabelaAtivo := True;
+  {$EndRegion}
+
+  {$Region 'Control + C'}
+    PressionarControlEManter;
+    PressionarTeclaC;
+    SoltarControl;
+  {$EndRegion}
+
+  {$Region 'Realiza consulta para trazer dados da tabela ou campo informado'}
+    SetTimeOut(
+      Procedure
+      {$Region 'Var ...'}
+        var Alias:      TADOConnection;
+            Consultant: TADOQuery;
+            Canvas : TCanvas;
+            vHDC : HDC;
+            pt: TPoint;
+            X: Integer;
+            TamanhoMaxString: integer;
+            SELECT: String;
+            TABELAOUCAMPO: String;
+            Thread: TThread;
+      {$EndRegion}
+      begin
+        {$Region 'Cria Thread para realizar a consulta para caso ela for muito grande não fique aparente ao usuário(não usei os eventos da AdoQuery pois daria mais trabalho de vincular.'}
+          Thread := TThread.CreateAnonymousThread(
+          procedure
+          {$Region '...'}
+            label FimWith;
+          {$EndRegion}
+          begin
+            TRY
+              Texto       := Clipboard.AsText;
+
+              {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
+                Thread.Synchronize(Thread, Procedure begin Alias := TAdoConnection.Create(Application); end);
+                Alias.Attributes     := [];
+                //Com xaCommitRetaining após commitar ele abre uma nova transação,
+                //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
+                Alias.CommandTimeout := 1;
+                //Se o comando demorar mais de 1 segundos ele aborta
+                Alias.Connected      := False;
+                //A conexão deve vir inicialmente fechada
+                Alias.ConnectionTimeout := 15;
+                //Se demorar mais de 15 segundos para abrir a conexão ele aborta
+                Alias.CursorLocation := clUseServer;
+                //Toda informação ao ser alterada sem commitar vai ficar no servidor.
+                Alias.DefaultDatabase := '';
+                Alias.IsolationLevel := ilReadUncommitted;
+                //Quero saber os campos que ainda não foram commitados também
+                Alias.KeepConnection := True;
+                Alias.LoginPrompt    := False;
+                Alias.Mode           := cmRead;
+                //Somente leitura
+                Alias.Name           := 'VerificarCamposDaTabelaConnection';
+                Alias.Provider       := 'SQLNCLI11.1';
+                Alias.Tag            := 1;
+                //Para indicar que é usado em VerificarCamposDaTabela
+
+                ConfigurarConexao(Alias);
+                Thread.Synchronize(Thread, Procedure begin Alias.Connected        := True; end);
+              {$EndRegion}
+
+              {$Region 'Realiza consulta e escreve dados na tela'}
+                Consultant := TAdoQuery.Create(Application);
+                with consultant do begin
+                  Close;
+                  Connection := Alias;
+                  TABELAOUCAMPO := 'TABELA';
+                  {$Region 'Montar SELECT'}
+                    SELECT        := 'Select'+FimLinhaStr+
+                                     'object_name(object_id) as Tabela,'+FimLinhaStr+
+                                     'sc.name as Campo,'+FimLinhaStr+
+                                     'st.name as Tipo,'+FimLinhaStr+
+                                     'sc.max_length as tamanho,'+FimLinhaStr+
+                                     'case sc.is_nullable when 0 then ''NÃO'' else ''SIM'' end as PermiteNulo'+FimLinhaStr+
+                                     'From'+FimLinhaStr+
+                                     'sys.columns sc'+FimLinhaStr+
+                                     'Inner Join'+FimLinhaStr+
+                                     'sys.types st On st.system_type_id = sc.system_type_id and st.user_type_id = sc.user_type_id'+FimLinhaStr+
+                                     'where sc.name like @pesquisaCampo and ( (object_name(object_id) = @pesquisaTabela) or (object_name(object_id) like (@pesquisaTabela+''_'')))'+FimLinhaStr+
+                                     'order by sc.is_nullable, sc.name';
+                  {$EndRegion}
+
+                  {$Region 'Colocar SELECT NA QUERY'}
+                    SQL.Text      := 'declare @pesquisaCampo varchar(100)'+FimLinhaStr+
+                                     'declare @pesquisaTabela varchar(100)'+FimLinhaStr+
+                                     'set @pesquisaCampo  = ''%'''+FimLinhaStr+
+                                     'set @pesquisaTabela = '''+Texto+''''+FimLinhaStr+
+                                     ''+FimLinhaStr+
+                                     SELECT;
+                  {$EndRegion}
+
+                  Open;
+                  {$Region 'Se não retornar nada, tentar fazer o mesmo considerando ele como campo ao invés de tabela'}
+                    if IsEmpty then begin
+                      TABELAOUCAMPO := 'CAMPO';
+                      SQL.Text      := 'declare @pesquisaCampo varchar(100)'+FimLinhaStr+
+                                       'declare @pesquisaTabela varchar(100)'+FimLinhaStr+
+                                       'set @pesquisaTabela = ''%'''+FimLinhaStr+
+                                       'set @pesquisaCampo  = '''+Texto+''''+FimLinhaStr+
+                                       ''+FimLinhaStr+
+                                       SELECT;
+                      Open;
+                      {$Region 'Se vazio novamente então ir até o fim do with para dar o free e reabilitar funcionalidade sem desenhar nada na tela'}
+                        if IsEmpty
+                          then goto FimWith;
+                        //Atenção use goto com responsabilidade, ele aumenta a complexidade do código muito fácilmente,
+                        //use o mínimo possível e de preferência só simulando um break (indo para baixo);
+                      {$EndRegion}
+                    end;
+                  {$EndRegion}
+
+
+                  {$Region 'Configura canvas'}
+                    vHDC := GetDC(0);
+                    Canvas := TCanvas.Create;
+                    Canvas.Handle      := vHDC;
+                    Canvas.Pen.Color   := ClRed;
+                    Canvas.Brush.Color := ClRed;
+                    GetCursorPos(pt);
+                  {$EndRegion}
+                  {$Region 'Ir ao primeiro registro retornado pela consulta'}
+                    First;
+                  {$EndRegion}
+
+                  {$Region 'Localiza tamanho máximo das strings retornadas, para que com isso seja possivel definir o tamanho do retangulo'}
+                    TamanhoMaxString := Length(FieldByName('Tabela').AsString);
+                    while not eof do begin
+                      if Length(FieldByName('Campo').AsString) > TamanhoMaxString
+                        then TamanhoMaxString := Length(FieldByName('Campo').AsString);
+                      Next;
+                    end;
+                  {$EndRegion}
+
+                  {$Region 'Ir ao primeiro registro retornado pela consulta'}
+                    First;
+                  {$EndRegion}
+
+                  {$Region 'Desenha o retangulo na tela'}
+                    X := 1;
+                    Canvas.Rectangle(Pt.x,Pt.y,Pt.x + ((TamanhoMaxString + 15) * 5), Pt.y + 10 + (52*RecordCount));
+                  {$EndRegion}
+
+                  {$Region 'Escreve dados das tabelas/campos na tela'}
+                    {$Region 'Escreve dados sobre a Tabela ou Campo base da consulta'}
+                      if TABELAOUCAMPO = 'TABELA'
+                        then Canvas.TextOut(Pt.x,Pt.y,              'TABELA:        ' + FieldByName('Tabela').AsString)
+                        else Canvas.TextOut(Pt.x,Pt.y,              'CAMPO:         ' + FieldByName('Campo').AsString);
+                    {$EndRegion}
+                    while not eof do begin
+                      {$Region 'Escreve os dados'}
+                        if TABELAOUCAMPO = 'TABELA'
+                          then Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'CAMPO:         ' + FieldByName('Campo').AsString)
+                          else Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TABELA:        ' + FieldByName('Tabela').AsString);
+                        Inc(X);
+                        Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TIPO:         ' + FieldByName('Tipo').AsString);
+                        Inc(X);
+                        Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TAMANHO:      ' + FieldByName('tamanho').AsString);
+                        Inc(X);
+                        Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'PERMITE NULO: ' + FieldByName('PermiteNulo').AsString);
+                        INC(X);
+                      {$EndRegion}
+
+                      {$Region 'Vai ao próximo registro'}
+                        Next;
+                      {$EndRegion}
+                    end;
+                  {$EndRegion}
+
+                  FimWith:
+                  {$Region 'Libera objeto Query da memória'}
+                    Free;
+                  {$EndRegion}
+                end;
+              {$EndRegion}
+
+              {$Region 'Libera objeto de conexão da memória'}
+                Thread.Synchronize(Thread, Procedure Begin Alias.Free; end);
+              {$EndRegion}
+            FINALLY
+              Thread.Synchronize(Thread,
+              procedure begin
+                {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
+                  SetTimeOut(
+                    Procedure
+                    begin
+                      VerificarCamposDaTabelaAtivo := False;
+                    End,
+                  1000);
+                {$EndRegion}
+              end);
+            END;
+
+          end
+          );
+          Thread.Start;
+        {$EndRegion}
+      End,
+    100);
   {$EndRegion}
 end;
 
