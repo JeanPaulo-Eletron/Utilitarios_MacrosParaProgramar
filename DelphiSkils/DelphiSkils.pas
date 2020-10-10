@@ -7,7 +7,7 @@ interface
     Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
     Vcl.Controls, Vcl.Forms,  Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls,
     JvExComCtrls, JvComCtrls, Vcl.Clipbrd,
-    Utilitarios, Data.DB, Data.Win.ADODB;
+    Utilitarios, Data.DB, Data.Win.ADODB, ActiveX;
 {$EndRegion}
 
 type
@@ -483,7 +483,8 @@ begin
               Texto       := Clipboard.AsText;
 
               {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
-                Thread.Synchronize(Thread, Procedure begin Alias := TAdoConnection.Create(Application); end);
+                CoInitialize(nil);
+                Alias := TAdoConnection.Create(Application);
                 Alias.Attributes     := [];
                 //Com xaCommitRetaining após commitar ele abre uma nova transação,
                 //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
@@ -508,7 +509,7 @@ begin
                 //Para indicar que é usado em VerificarCamposDaTabela
 
                 ConfigurarConexao(Alias);
-                Thread.Synchronize(Thread, Procedure begin Alias.Connected        := True; end);
+                Alias.Connected        := True;
               {$EndRegion}
 
               {$Region 'Realiza consulta e escreve dados na tela'}
@@ -626,7 +627,7 @@ begin
               {$EndRegion}
 
               {$Region 'Libera objeto de conexão da memória'}
-                Thread.Synchronize(Thread, Procedure Begin Alias.Free; end);
+                Alias.Free;
               {$EndRegion}
             FINALLY
               Thread.Synchronize(Thread,

@@ -84,6 +84,7 @@ Type
   procedure EscreverLivrementeNaTela(Texto: String; Y: Integer);
   procedure ConfigurarConexao(Alias: TAdoConnection);
 
+  procedure AtualizarIcone(const FileName, IcoFileName: String);
 //--//--//--//--//--//--//--//--//--//--/EM DESENVOLVIMENTO/--//--//--//--//--//--//--//--//--//--//--//--//
 
   procedure DesenharSeta(OCor: TColor; OLargura: Integer; Origem, Destino: TPoint);
@@ -541,5 +542,167 @@ begin
     End,
   Velocidade);
 end;
+
+{$Region 'Atualizar Icone'}
+  procedure AtualizarIcone(const FileName, IcoFileName: String);
+  type
+    PIcoItemHeader = ^TIcoItemHeader;
+    TIcoItemHeader = packed record
+      Width: Byte;
+      Height: Byte;
+      Colors: Byte;
+      Reserved: Byte;
+      Planes: Word;
+      BitCount: Word;
+      ImageSize: DWORD;
+    end;
+    PIcoItem = ^TIcoItem;
+    TIcoItem = packed record
+      Header: TIcoItemHeader;
+      Offset: DWORD;
+    end;
+    PIcoHeader = ^TIcoHeader;
+    TIcoHeader = packed record
+      Reserved: Word;
+      Typ: Word;
+      ItemCount: Word;
+      Items: array [0..MaxInt shr 4 - 1] of TIcoItem;
+    end;
+    PGroupIconDirItem = ^TGroupIconDirItem;
+    TGroupIconDirItem = packed record
+      Header: TIcoItemHeader;
+      Id: Word;
+    end;
+    PGroupIconDir = ^TGroupIconDir;
+    TGroupIconDir = packed record
+      Reserved: Word;
+      Typ: Word;
+      ItemCount: Word;
+      Items: array [0..MaxInt shr 4 - 1] of TGroupIconDirItem;
+    end;
+
+  function GetResLang(hModule: Cardinal; lpType, lpName: PWideChar; var wLanguage: Word): Boolean;
+  function EnumLangs(hModule: Cardinal; lpType, lpName: PWideChar; wLanguage: Word; lParam: Integer): BOOL; stdcall;
+  begin
+    PWord(lParam)^ := wLanguage;
+    Result := False;
+  end;
+  begin
+    wLanguage := 0;
+    EnumResourceLanguages(hModule, lpType, lpName, @EnumLangs, Integer(@wLanguage));
+    Result := True;
+  end;
+
+    function IsIcon(P: Pointer; Size: Cardinal): Boolean;
+    var
+      ItemCount: Cardinal;
+    begin
+      Result := False;
+      if Size < Cardinal(SizeOf(Word) * 3) then
+        Exit;
+      if (PChar(P)[0] = 'M') and (PChar(P)[1] = 'Z') then
+        Exit;
+      ItemCount := PIcoHeader(P).ItemCount;
+      if Size < Cardinal((SizeOf(Word) * 3) + (ItemCount * SizeOf(TIcoItem))) then
+        Exit;
+      P := @PIcoHeader(P).Items;
+      while ItemCount > Cardinal(0) do begin
+        if (Cardinal(PIcoItem(P).Offset + PIcoItem(P).Header.ImageSize) < Cardinal(PIcoItem(P).Offset)) or
+           (Cardinal(PIcoItem(P).Offset + PIcoItem(P).Header.ImageSize) > Cardinal(Size)) then
+          Exit;
+        Inc(PIcoItem(P));
+        Dec(ItemCount);
+      end;
+      Result := True;
+    end;
+
+  var
+    H: THandle;
+    M: HMODULE;
+    R: HRSRC;
+    Res: HGLOBAL;
+    GroupIconDir, NewGroupIconDir: PGroupIconDir;
+    I: Integer;
+    wLanguage: Word;
+    F: TFileStream;
+    Ico: PIcoHeader;
+    N: Cardinal;
+    NewGroupIconDirSize: LongInt;
+  begin
+    if Win32Platform <> VER_PLATFORM_WIN32_NT then
+      ShowMessage('Somete Plataformas NT');
+    Ico := nil;
+    try
+      F := TFileStream.Create(IcoFileName, FmOpenRead);
+      try
+        N := F.Size;
+        if Cardinal(N) > Cardinal($100000) then  { sanity check }
+          ShowMessage('Tamanho de Icone não suportado');
+        GetMem(Ico, N);
+        F.ReadBuffer(Ico^, N);
+      finally
+        F.Free;
+      end;
+      if not IsIcon(Ico, N) then
+        ShowMessage('Formato de icone desconhecido');
+      H := BeginUpdateResource(PChar(FileName), False);
+      if H = 0 then
+        ShowMessage('Falhou no Passo (1)');
+      try
+        M := LoadLibraryEx(PChar(FileName), 0, LOAD_LIBRARY_AS_DATAFILE);
+        if M = 0 then
+          ShowMessage('Falhou no Passo (2)');
+        try
+          R := FindResource(M, 'MAINICON', RT_GROUP_ICON);
+          if R = 0 then
+            ShowMessage('Falhou no Passo (3)');
+          Res := LoadResource(M, R);
+          if Res = 0 then
+            ShowMessage('Falhou no Passo (4)');
+          GroupIconDir := LockResource(Res);
+          if GroupIconDir = nil then
+            ShowMessage('Falhou no Passo (5)');
+          if not GetResLang(M, RT_GROUP_ICON, 'MAINICON', wLanguage) then
+            ShowMessage('Falhou no Passo (6)');
+          if not UpdateResource(H, RT_GROUP_ICON, 'MAINICON', wLanguage, nil, 0) then
+            ShowMessage('Falhou no Passo (7)');
+          for I := 0 to GroupIconDir.ItemCount-1 do begin
+            if not GetResLang(M, RT_ICON, MakeIntResource(GroupIconDir.Items[I].Id), wLanguage) then
+              ShowMessage('Falhou no Passo (8)');
+            if not UpdateResource(H, RT_ICON, MakeIntResource(GroupIconDir.Items[I].Id), wLanguage, nil, 0) then
+              ShowMessage('Falhou no Passo (9)');
+          end;
+          NewGroupIconDirSize := 3*SizeOf(Word)+Ico.ItemCount*SizeOf(TGroupIconDirItem);
+          GetMem(NewGroupIconDir, NewGroupIconDirSize);
+          try
+            NewGroupIconDir.Reserved := GroupIconDir.Reserved;
+            NewGroupIconDir.Typ := GroupIconDir.Typ;
+            NewGroupIconDir.ItemCount := Ico.ItemCount;
+            for I := 0 to NewGroupIconDir.ItemCount-1 do begin
+              NewGroupIconDir.Items[I].Header := Ico.Items[I].Header;
+              NewGroupIconDir.Items[I].Id := I+1; //assumes that there aren't any icons left
+            end;
+            for I := 0 to NewGroupIconDir.ItemCount-1 do
+              if not UpdateResource(H, RT_ICON, MakeIntResource(NewGroupIconDir.Items[I].Id), 1033, Pointer(DWORD(Ico) + Ico.Items[I].Offset), Ico.Items[I].Header.ImageSize) then
+                ShowMessage('Falhou no Passo (10)');
+            if not UpdateResource(H, RT_GROUP_ICON, 'MAINICON', 1033, NewGroupIconDir, NewGroupIconDirSize) then
+              ShowMessage('Falhou no Passo (11)');
+          finally
+            FreeMem(NewGroupIconDir);
+          end;
+        finally
+          FreeLibrary(M);
+        end;
+      except
+        EndUpdateResource(H, True);  { discard changes }
+        raise;
+      end;
+      if not EndUpdateResource(H, False) then
+        ShowMessage('Falhou no Passo (12)');
+    finally
+      FreeMem(Ico);
+    end;
+  end;
+{$EndRegion}
 
 end.
