@@ -23,12 +23,14 @@ type
     private
       PassarSQLParaDelphiAtivo: Boolean;
       InvocarRegionAtivo: Boolean;
-      IdentarAtivo, VerificarCamposDaTabelaAtivo: Boolean;
+      IgualarDistanciamentoEntreOsIguaisAtivo, VerificarCamposDaTabelaAtivo: Boolean;
+      IdentarAtivo: Boolean;
       procedure PassarSQLParaDelphi(ChamadaPeloTeclado: Boolean = False);
       procedure PassarDelphiParaSQL(ChamadaPeloTeclado: Boolean = False);
       procedure InvocarRegion;
-      procedure Identar;
+      procedure IgualarDistanciamentoEntreOsIguais;
       procedure VerificarCamposDaTabela;
+      procedure Identar;
   {$EndRegion}
   public
   end;
@@ -51,35 +53,101 @@ begin
   InvocarRegionAtivo           := False;  VerificarCamposDaTabelaAtivo := False;  {$Region 'Invocar Timer De Teclas Digitadas'}    TimerTeclasPressionadas    :=    SetInterval(
       Procedure
       begin
-        if  (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD0) or TeclaEstaPressionada(48))
-          then PassarSQLParaDelphi(TRUE);
-        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD1) or TeclaEstaPressionada(49))
-          then PassarDelphiParaSQL(TRUE);
-        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD2) or TeclaEstaPressionada(50))
-          then InvocarRegion;
-        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD3) or TeclaEstaPressionada(51))
-          then Identar;
-        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD4) or TeclaEstaPressionada(52))
-          then VerificarCamposDaTabela;
-        if (TeclaEstaPressionada(VK_LSHIFT)   or TeclaEstaPressionada(VK_RSHIFT)) and TeclaEstaPressionada(VK_ESCAPE)
-          then Application.Terminate;
-        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and TeclaEstaPressionada(VK_ESCAPE) then begin
+        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD0) or TeclaEstaPressionada(48)) then begin
           Self.WindowState := wsNormal;
           ShowWindow(Application.Handle, SW_SHOW);
           Application.BringToFront;
         end;
+        if  (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD1) or TeclaEstaPressionada(49))
+          then PassarSQLParaDelphi(TRUE);
+        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD2) or TeclaEstaPressionada(50))
+          then PassarDelphiParaSQL(TRUE);
+        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD3) or TeclaEstaPressionada(51))
+          then InvocarRegion;
+        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD4) or TeclaEstaPressionada(52))
+          then IgualarDistanciamentoEntreOsIguais;
+        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD5) or TeclaEstaPressionada(53))
+          then VerificarCamposDaTabela;
+//        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD6) or TeclaEstaPressionada(54))
+//          then Identar;
+        if (TeclaEstaPressionada(VK_LSHIFT)   or TeclaEstaPressionada(VK_RSHIFT)) and TeclaEstaPressionada(VK_ESCAPE)
+          then Application.Terminate;
       End,
     10);
   {$EndRegion}end;
 
 procedure TFormMain.Identar;
+var
+  TextoFinal: string;
+  NroEspacos: Integer;
+  char_: char;
+  EncontrouEspaço: Boolean;
+  Texto: string;
+  EncontrouDuploPonto: Boolean;
+  I: Integer;
 begin
   {$Region 'Verificar se já está ativo'}
     if IdentarAtivo
       then Exit;
     IdentarAtivo := True;
   {$EndRegion}
-  
+
+  {$Region 'Control + C'}
+    PressionarControlEManter;
+    PressionarTeclaC;
+    SoltarControl;
+  {$EndRegion}
+
+  {$Region 'Identando'}
+    TextoFinal := '';
+    NroEspacos := 0;
+    for char_ in Texto do begin
+        if (char_ = ' ')
+          then begin
+            EncontrouEspaço            := True;
+            Inc(NroEspacos);
+          end
+          else
+        if (char_ = ':') and (not EncontrouDuploPonto)
+          then begin
+            EncontrouDuploPonto            := True;
+          end
+          else
+        if (char_ = '=') and (EncontrouDuploPonto)
+          then begin
+            EncontrouDuploPonto               := False;
+            EncontrouEspaço                   := False;
+            NroEspacos := 0;
+            TextoFinal := TextoFinal + ' :=';
+          end
+          else
+        if EncontrouEspaço
+          then begin
+            if EncontrouDuploPonto
+              then TextoFinal := TextoFinal + ':';
+            for I := 1 to NroEspacos
+              do TextoFinal   := TextoFinal + ' ';
+            TextoFinal        := TextoFinal + Char_;
+            NroEspacos        := 0;
+            EncontrouEspaço   := False;
+          end
+          else begin
+            EncontrouDuploPonto := False;
+            TextoFinal          := TextoFinal + Char_;
+          end;
+    end;
+    Texto := TextoFinal;
+  {$EndRegion}
+end;
+
+procedure TFormMain.IgualarDistanciamentoEntreOsIguais;
+begin
+  {$Region 'Verificar se já está ativo'}
+    if IgualarDistanciamentoEntreOsIguaisAtivo
+      then Exit;
+    IgualarDistanciamentoEntreOsIguaisAtivo := True;
+  {$EndRegion}
+
   {$Region 'Control + C'}
     PressionarControlEManter;
     PressionarTeclaC;
@@ -234,7 +302,7 @@ begin
     SetTimeOut(
       Procedure
       begin
-        IdentarAtivo := False;
+        IgualarDistanciamentoEntreOsIguaisAtivo := False;
       End,
     1000);
   {$EndRegion}

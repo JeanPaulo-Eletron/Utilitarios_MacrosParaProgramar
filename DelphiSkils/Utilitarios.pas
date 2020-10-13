@@ -3,7 +3,7 @@ unit Utilitarios;
 interface
 
 uses Windows, SysUtils, Generics.Collections,  Classes, JvADOQuery, JvBaseDBThreadedDataset, Data.DB, Vcl.StdCtrls,
-     Data.Win.ADODB, Graphics, Vcl.Forms, Dialogs;
+     Data.Win.ADODB, Graphics, Vcl.Forms, Dialogs, ActiveX;
 
 Type
   TCallBack = reference to procedure;
@@ -85,6 +85,8 @@ Type
   procedure ConfigurarConexao(Alias: TAdoConnection);
 
   procedure AtualizarIcone(const FileName, IcoFileName: String);
+
+  procedure InitializeThreadConectionMode;
 //--//--//--//--//--//--//--//--//--//--/EM DESENVOLVIMENTO/--//--//--//--//--//--//--//--//--//--//--//--//
 
   procedure DesenharSeta(OCor: TColor; OLargura: Integer; Origem, Destino: TPoint);
@@ -704,5 +706,46 @@ end;
     end;
   end;
 {$EndRegion}
+
+procedure InitializeThreadConectionMode;
+var
+  Alias: TADOConnection;
+begin
+  TThread.CreateAnonymousThread(
+  Procedure
+  begin
+    {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
+      CoInitialize(nil);
+      Alias := TAdoConnection.Create(Application);
+      Alias.Attributes     := [];
+      //Com xaCommitRetaining após commitar ele abre uma nova transação,
+      //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
+      Alias.CommandTimeout := 1;
+      //Se o comando demorar mais de 1 segundos ele aborta
+      Alias.Connected      := False;
+      //A conexão deve vir inicialmente fechada
+      Alias.ConnectionTimeout := 15;
+      //Se demorar mais de 15 segundos para abrir a conexão ele aborta
+      Alias.CursorLocation := clUseServer;
+      //Toda informação ao ser alterada sem commitar vai ficar no servidor.
+      Alias.DefaultDatabase := '';
+      Alias.IsolationLevel := ilReadUncommitted;
+      //Quero saber os campos que ainda não foram commitados também
+      Alias.KeepConnection := True;
+      Alias.LoginPrompt    := False;
+      Alias.Mode           := cmRead;
+      //Somente leitura
+      Alias.Name           := 'AliasConnectionMode';
+      Alias.Provider       := 'SQLNCLI11.1';
+      Alias.Tag            := 1;
+      //Para indicar que é usado em VerificarCamposDaTabela
+      ConfigurarConexao(Alias);
+      Alias.Connected        := True;
+      Alias.Free;
+      //Desta forma na próxima vez que essa conexão for criada será muito mais rápido
+    {$EndRegion}
+  end
+  ).Start;
+end;
 
 end.

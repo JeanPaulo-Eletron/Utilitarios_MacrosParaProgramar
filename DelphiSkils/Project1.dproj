@@ -100,7 +100,6 @@
         </DelphiCompile>
         <DCCReference Include="DelphiSkils.pas">
             <Form>FormMain</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="Utilitarios.pas"/>
         <BuildConfiguration Include="Release">

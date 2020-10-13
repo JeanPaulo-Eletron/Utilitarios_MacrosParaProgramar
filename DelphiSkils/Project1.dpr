@@ -9,6 +9,7 @@ uses
 
 begin
   Application.Initialize;
+  InitializeThreadConectionMode;
   Application.MainFormOnTaskbar := False;
   Application.CreateForm(TFormMain, FormMain);
   Application.Run;
