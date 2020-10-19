@@ -4,10 +4,9 @@ interface
 {$Region 'uses'}
   uses
     Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-    Vcl.Controls, Vcl.Forms,  Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls,
-    JvExComCtrls, JvComCtrls, Vcl.Clipbrd,
-    Utilitarios, Data.DB, Data.Win.ADODB, ActiveX;
-{$EndRegion}
+    Vcl.Controls, Vcl.Forms,  Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls, JvExComCtrls, JvComCtrls, 
+    Vcl.Clipbrd, Utilitarios, Data.DB, Data.Win.ADODB, ActiveX, Vcl.Grids, Vcl.DBGrids;
+{$EndRegion}                                                           
 
 type
   TFormMain = class(TForm)
@@ -15,8 +14,19 @@ type
     TabSheet1: TTabSheet;
     TabSheet2: TTabSheet;
     Label1: TLabel;
+    TSConfigConect: TTabSheet;
+    EditServidor: TEdit;
+    EditUsuario: TEdit;
+    EditSenha: TEdit;
+    EditDataBase: TEdit;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure JvPageControl1Change(Sender: TObject);
+    procedure EditConfiguraConexaoExit(Sender: TObject);
 
   {$Region 'private'}
     private
@@ -24,12 +34,14 @@ type
       InvocarRegionAtivo: Boolean;
       IgualarDistanciamentoEntreOsIguaisAtivo, VerificarCamposDaTabelaAtivo: Boolean;
       IdentarAtivo: Boolean;
+      DBGrid: TDBGrid;
       procedure PassarSQLParaDelphi(ChamadaPeloTeclado: Boolean = False);
       procedure PassarDelphiParaSQL(ChamadaPeloTeclado: Boolean = False);
       procedure InvocarRegion;
       procedure IgualarDistanciamentoEntreOsIguais;
       procedure VerificarCamposDaTabela;
       procedure Identar;
+    procedure VerificarProcedimentos;
   {$EndRegion}
   public
   end;
@@ -42,12 +54,34 @@ implementation
 
 {$R *.dfm}
 
+procedure TFormMain.EditConfiguraConexaoExit(Sender: TObject);
+var
+  CaminhoENomeArquivo, ExePath: String;
+  NovoArq: TStringList;
+begin
+  ExePath    := ExtractFilePath(Application.ExeName);
+  CaminhoENomeArquivo := ExePath + 'Config.ini';
+
+  NovoArq := TStringList.Create;
+  NovoArq.Add('Servidor        : '+EditServidor.Text);
+  NovoArq.Add('Usu·rio         : '+EditUsuario.Text);                                   
+  NovoArq.Add('Senha           : '+EditSenha.Text);
+  NovoArq.Add('LicencaDataBase : '+EditDataBase.Text);
+  NovoArq.Add('O Sistema sÛ ir· considerar as 4 primeiras linhas e somente o que estiver apÛs o ":",');
+  NovoArq.Add('ele n„o ira considerar espaÁos adicionais a direita e esquerda.');
+ 
+  NovoArq.SaveToFile(CaminhoENomeArquivo);
+
+  NovoArq.Free;
+end;
+
 procedure TFormMain.FormCreate(Sender: TObject);
 {$Region 'var ...'}
   var
     TimerTeclasPressionadas: TTimeOut;
 {$EndRegion}
 begin
+  JvPageControl1.ActivePageIndex := 0;
   PassarSQLParaDelphiAtivo     := False;
   InvocarRegionAtivo           := False;
   VerificarCamposDaTabelaAtivo := False;
@@ -72,7 +106,9 @@ begin
           then IgualarDistanciamentoEntreOsIguais;
         if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD5) or TeclaEstaPressionada(53))
           then VerificarCamposDaTabela;
-//        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD6) or TeclaEstaPressionada(54))
+        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD6) or TeclaEstaPressionada(54))
+          then VerificarProcedimentos;
+//        if (TeclaEstaPressionada(VK_RCONTROL) or TeclaEstaPressionada(VK_LCONTROL)) and (TeclaEstaPressionada(VK_NUMPAD7) or TeclaEstaPressionada(55))
 //          then Identar;
         if (TeclaEstaPressionada(VK_LSHIFT)   or TeclaEstaPressionada(VK_RSHIFT)) and TeclaEstaPressionada(VK_ESCAPE)
           then Application.Terminate;
@@ -390,6 +426,28 @@ begin
   {$EndRegion}
 end;
 
+procedure TFormMain.JvPageControl1Change(Sender: TObject);
+var
+  ExePath, Txt, CaminhoENomeArquivo: String;
+  arquivo: TStringList;
+begin
+  if JvPageControl1.ActivePageIndex = 1 then begin
+    ExePath    := ExtractFilePath(Application.ExeName);
+    arquivo := TStringList.Create;
+    CaminhoENomeArquivo := ExePath + 'Config.ini';
+    arquivo.LoadFromFile(CaminhoENomeArquivo);
+    Txt := arquivo.Strings[0];
+    EditServidor.Text := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt) ));
+    Txt := arquivo.Strings[1];
+    EditUsuario.Text  := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt)));
+    Txt := arquivo.Strings[2];
+    EditSenha.Text    := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt)));
+    Txt := arquivo.Strings[3];
+    EditDataBase.Text := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt)));
+    arquivo.Free;
+  end;
+end;
+
 procedure TFormMain.FormShow(Sender: TObject);
 begin
   ShowWindow(Application.Handle, SW_HIDE);
@@ -541,6 +599,132 @@ begin
 
 end;
 
+procedure TFormMain.VerificarProcedimentos;
+var
+  Thread: TThread;
+  Texto: String;
+  Alias:      TADOConnection;
+  Consultant: TADOQuery;
+  Form: TForm;
+  DS: TDataSource;
+begin
+  {$Region 'Verificar se j√° est√° ativo'}
+    if VerificarCamposDaTabelaAtivo
+      then Exit;
+    VerificarCamposDaTabelaAtivo := True;
+  {$EndRegion}
+
+  {$Region 'Control + C'}
+    PressionarControlEManter;
+    PressionarTeclaC;
+    SoltarControl;
+  {$EndRegion}
+  SetTimeOut(
+  Procedure
+  Begin
+    Texto       := Clipboard.AsText;
+      TRY
+
+        {$Region 'Criar objeto de conex√£o com o banco e configura a conex√£o'}
+          Form := Tform.Create(Self);
+          Form.Width  := 500;
+          Form.Height := 250;
+          Form.Show;
+          Form.BorderStyle := bsSizeable;
+          Alias := TAdoConnection.Create(Form);
+          Alias.Attributes     := [];
+          //Com xaCommitRetaining ap√≥s commitar ele abre uma nova transa√ß√£o,
+          //Com xaAbortRetaining  ap√≥s abordar ele abre uma nova transa√ß√£o, custo muito alto.
+          Alias.CommandTimeout := 1;
+          //Se o comando demorar mais de 1 segundos ele aborta
+          Alias.Connected      := False;
+          //A conex√£o deve vir inicialmente fechada
+          Alias.ConnectionTimeout := 15;
+          //Se demorar mais de 15 segundos para abrir a conex√£o ele aborta
+          Alias.CursorLocation := clUseServer;
+          //Toda informa√ß√£o ao ser alterada sem commitar vai ficar no servidor.
+          Alias.DefaultDatabase := '';
+          Alias.IsolationLevel := ilReadUncommitted;
+          //Quero saber os campos que ainda n√£o foram commitados tamb√©m
+          Alias.KeepConnection := True;
+          Alias.LoginPrompt    := False;
+          Alias.Mode           := cmRead;
+          //Somente leitura
+          Alias.Name           := 'VerificarProcedimentosConnection';
+          Alias.Provider       := 'SQLNCLI11.1';
+          Alias.Tag            := 1;
+          //Para indicar que √© usado em VerificarCamposDaTabela
+
+          ConfigurarConexao(Alias);
+          Alias.Connected        := True;
+        {$EndRegion}
+
+        {$Region 'Realiza consulta e escreve dados na tela'}
+          Consultant := TAdoQuery.Create(Application);
+          with consultant do begin
+            Close;
+            Connection := Alias;
+            SQL.Text := 'SELECT '+FimLinhaStr+
+                        'case type when ''P'' then ''Stored procedure'' '+FimLinhaStr+
+                        'when ''FN'' then ''Function'' '+FimLinhaStr+
+                        'when ''TF'' then ''Function'' '+FimLinhaStr+
+                        'when ''TR'' then ''Trigger'' '+FimLinhaStr+
+                        'when ''V'' then ''View'' '+FimLinhaStr+
+                        'else ''Outros Objetos'' '+FimLinhaStr+
+                        'end as Procedimento,'+FimLinhaStr+
+                        'B.name Nome_Do_Procedimento, A.Text Conteudo '+FimLinhaStr+
+                        'FROM syscomments A (nolock)'+FimLinhaStr+
+                        'JOIN sysobjects B (nolock) on A.Id = B.Id'+FimLinhaStr+
+                        'WHERE A.Text like ''%'+Texto+'%''';
+            DS := TDataSource.Create(Form);
+            DS.DataSet := Consultant;
+            DBGrid  := TDBGrid.Create(Form);
+            with DBGrid do begin
+              Parent := Form;
+              Align := alClient;
+              Name := 'Grid';
+              DataSource := DS;
+              Visible := True;
+              Left    := 0;
+              Top     := 0;
+              DBGrid.Columns.Insert(0);
+              DBGrid.Columns[0].FieldName:='Procedimento';
+              DBGrid.Columns[0].Title.Caption:='Procedimento';
+              DBGrid.Columns[0].Title.Alignment := taCenter;
+              DBGrid.Columns[0].Title.Font.Style := [fsBold];
+              DBGrid.Columns[0].Width:=155;
+              DBGrid.Columns.Insert(1);
+              DBGrid.Columns[1].FieldName:='Nome_Do_Procedimento';
+              DBGrid.Columns[1].Title.Caption:='Nome';
+              DBGrid.Columns[1].Title.Alignment := taCenter;
+              DBGrid.Columns[1].Title.Font.Style := [fsBold];
+              DBGrid.Columns[1].Width:=200;
+              DBGrid.Columns.Insert(2);
+              DBGrid.Columns[2].FieldName:='Conteudo';
+              DBGrid.Columns[2].Title.Caption:='Conteudo';
+              DBGrid.Columns[2].Title.Alignment := taCenter;
+              DBGrid.Columns[2].Title.Font.Style := [fsBold];
+              DBGrid.Columns[2].Width:=65;
+            end;
+            Open;
+            Application.BringToFront;
+          end;
+        {$EndRegion}
+      FINALLY
+          {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
+            SetTimeOut(
+              Procedure
+              begin
+                VerificarCamposDaTabelaAtivo := False;
+              End,
+            1000);
+          {$EndRegion}
+      END;
+
+  end,
+  100);
+end;
+
 procedure TFormMain.VerificarCamposDaTabela;
 {$Region 'var ...'}
   var
@@ -571,7 +755,7 @@ begin
             X: Integer;
             TamanhoMaxString: integer;
             SELECT: String;
-            TABELAOUCAMPO: String;
+            TABELAOUCAMPOOUPROCEDIMENTOS: String;
             Thread: TThread;
       {$EndRegion}
       begin
@@ -620,7 +804,7 @@ begin
                 with consultant do begin
                   Close;
                   Connection := Alias;
-                  TABELAOUCAMPO := 'TABELA';
+                  TABELAOUCAMPOOUPROCEDIMENTOS := 'TABELA';
                   {$Region 'Montar SELECT'}
                     SELECT        := 'Select'+FimLinhaStr+
                                      'object_name(object_id) as Tabela,'+FimLinhaStr+
@@ -646,9 +830,9 @@ begin
                   {$EndRegion}
 
                   Open;
-                  {$Region 'Se n√£o retornar nada, tentar fazer o mesmo considerando ele como campo ao inv√©s de tabela'}
+                  {$Region 'Se n„o retornar nada, tentar fazer o mesmo considerando ele como campo ao invÈs de tabela'}
                     if IsEmpty then begin
-                      TABELAOUCAMPO := 'CAMPO';
+                      TABELAOUCAMPOOUPROCEDIMENTOS := 'CAMPO';
                       SQL.Text      := 'declare @pesquisaCampo varchar(100)'+FimLinhaStr+
                                        'declare @pesquisaTabela varchar(100)'+FimLinhaStr+
                                        'set @pesquisaTabela = ''%'''+FimLinhaStr+
@@ -656,11 +840,12 @@ begin
                                        ''+FimLinhaStr+
                                        SELECT;
                       Open;
-                      {$Region 'Se vazio novamente ent√£o ir at√© o fim do with para dar o free e reabilitar funcionalidade sem desenhar nada na tela'}
-                        if IsEmpty
-                          then goto FimWith;
-                        //Aten√ß√£o use goto com responsabilidade, ele aumenta a complexidade do c√≥digo muito f√°cilmente,
-                        //use o m√≠nimo poss√≠vel e de prefer√™ncia s√≥ simulando um break (indo para baixo);
+                      {$Region 'Se vazio ir ao fim do with'}
+                        if IsEmpty then begin
+                          goto FimWith;
+                          //AtenÁ„o use goto com responsabilidade, ele aumenta a complexidade do cÛdigo muito f·cilmente,
+                          //use o mÌnimo possÌvel e de preferÍncia simulando um break (indo para baixo);
+                        end;
                       {$EndRegion}
                     end;
                   {$EndRegion}
@@ -698,13 +883,13 @@ begin
 
                   {$Region 'Escreve dados das tabelas/campos na tela'}
                     {$Region 'Escreve dados sobre a Tabela ou Campo base da consulta'}
-                      if TABELAOUCAMPO = 'TABELA'
+                      if TABELAOUCAMPOOUPROCEDIMENTOS = 'TABELA'
                         then Canvas.TextOut(Pt.x,Pt.y,              'TABELA:        ' + FieldByName('Tabela').AsString)
                         else Canvas.TextOut(Pt.x,Pt.y,              'CAMPO:         ' + FieldByName('Campo').AsString);
                     {$EndRegion}
                     while not eof do begin
                       {$Region 'Escreve os dados'}
-                        if TABELAOUCAMPO = 'TABELA'
+                        if TABELAOUCAMPOOUPROCEDIMENTOS = 'TABELA'
                           then Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'CAMPO:         ' + FieldByName('Campo').AsString)
                           else Canvas.TextOut(Pt.x,Pt.y + (13 * X), 'TABELA:        ' + FieldByName('Tabela').AsString);
                         Inc(X);

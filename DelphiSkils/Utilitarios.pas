@@ -468,6 +468,7 @@ begin
     LicencaSenha    := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt)));
     ReadLn(TxtFile, Txt);
     LicencaDataBase := TRIM(Copy(Txt,POS(':',Txt)+1,Length(Txt)));
+    CloseFile(TxtFile);
     Alias.ConnectionString := 'Provider=SQLOLEDB.1;'+
                               'Password='+LicencaSenha+';'+
                               'Persist Security Info=True;'+
@@ -720,11 +721,11 @@ begin
       Alias.Attributes     := [];
       //Com xaCommitRetaining após commitar ele abre uma nova transação,
       //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
-      Alias.CommandTimeout := 1;
+      Alias.CommandTimeout := 0;
       //Se o comando demorar mais de 1 segundos ele aborta
       Alias.Connected      := False;
       //A conexão deve vir inicialmente fechada
-      Alias.ConnectionTimeout := 15;
+      Alias.ConnectionTimeout := 0;
       //Se demorar mais de 15 segundos para abrir a conexão ele aborta
       Alias.CursorLocation := clUseServer;
       //Toda informação ao ser alterada sem commitar vai ficar no servidor.
@@ -733,7 +734,7 @@ begin
       //Quero saber os campos que ainda não foram commitados também
       Alias.KeepConnection := True;
       Alias.LoginPrompt    := False;
-      Alias.Mode           := cmRead;
+      Alias.Mode           := cmReadWrite;
       //Somente leitura
       Alias.Name           := 'AliasConnectionMode';
       Alias.Provider       := 'SQLNCLI11.1';
