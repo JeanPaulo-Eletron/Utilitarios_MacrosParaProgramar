@@ -40,7 +40,9 @@ object FormMain: TFormMain
           'pas simples. '#13#10'Control + 2 = Desfaz o que o Control + 0 fez.'#13#10'Co' +
           'ntrol + 3 = Seta uma region gen'#233'rica sobre.'#13#10'Control + 4 = Igual' +
           'a o distanciamento entre os iguais.'#13#10'Control + 5 = Lista todos o' +
-          's campos da tabela ou tabelas do campo, '#13#10'ignora plural.'
+          's campos da tabela ou tabelas do campo, '#13#10'ignora plural.'#13#10'Contro' +
+          ' + 6  = Procura todo o termo selecionado nas SPs, Triggers, etc.' +
+          '..'
         Font.Charset = ANSI_CHARSET
         Font.Color = clMaroon
         Font.Height = -16
@@ -48,14 +50,9 @@ object FormMain: TFormMain
         Font.Style = [fsBold]
         ParentFont = False
         Layout = tlCenter
-        ExplicitWidth = 512
-        ExplicitHeight = 160
+        ExplicitWidth = 538
+        ExplicitHeight = 180
       end
-    end
-    object TabSheet2: TTabSheet
-      Caption = 'Mouse E Teclado Autom'#225'tizado'
-      ImageIndex = 1
-      TabVisible = False
     end
     object TSConfigConect: TTabSheet
       Caption = 'Configurar conex'#227'o'
@@ -84,9 +81,9 @@ object FormMain: TFormMain
       object Label5: TLabel
         Left = 168
         Top = 5
-        Width = 46
+        Width = 49
         Height = 13
-        Caption = 'DataBase'
+        Caption = 'Data Base'
       end
       object EditServidor: TEdit
         Left = 16
@@ -96,6 +93,7 @@ object FormMain: TFormMain
         Hint = 'LAPTOP-GK2QJ6O0'
         TabOrder = 0
         Text = 'EditServidor'
+        OnExit = EditConfiguraConexaoExit
       end
       object EditUsuario: TEdit
         Left = 16
@@ -104,6 +102,7 @@ object FormMain: TFormMain
         Height = 21
         TabOrder = 1
         Text = 'EditUsuario'
+        OnExit = EditConfiguraConexaoExit
       end
       object EditSenha: TEdit
         Left = 168
@@ -112,6 +111,7 @@ object FormMain: TFormMain
         Height = 21
         TabOrder = 2
         Text = 'EditSenha'
+        OnExit = EditConfiguraConexaoExit
       end
       object EditDataBase: TEdit
         Left = 168
@@ -120,7 +120,13 @@ object FormMain: TFormMain
         Height = 21
         TabOrder = 3
         Text = 'EditDataBase'
+        OnExit = EditConfiguraConexaoExit
       end
+    end
+    object TabSheet2: TTabSheet
+      Caption = 'Mouse E Teclado Autom'#225'tizado'
+      ImageIndex = 1
+      TabVisible = False
     end
   end
 end

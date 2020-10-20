@@ -28,11 +28,15 @@ object FormMain: TFormMain
     OnChange = JvPageControl1Change
     object TabSheet1: TTabSheet
       Caption = 'Atalhos do teclado'
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object Label1: TLabel
         Left = 0
         Top = 0
-        Width = 528
-        Height = 208
+        Width = 538
+        Height = 180
         Align = alClient
         Caption = 
           'Sobre o bloco de texto Selecionado'#13#10'Control + 0 = Tr'#225's programa ' +
@@ -50,8 +54,6 @@ object FormMain: TFormMain
         Font.Style = [fsBold]
         ParentFont = False
         Layout = tlCenter
-        ExplicitWidth = 538
-        ExplicitHeight = 180
       end
     end
     object TSConfigConect: TTabSheet
@@ -127,6 +129,10 @@ object FormMain: TFormMain
       Caption = 'Mouse E Teclado Autom'#225'tizado'
       ImageIndex = 1
       TabVisible = False
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
     end
   end
 end

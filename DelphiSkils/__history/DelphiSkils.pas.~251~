@@ -23,10 +23,6 @@ type
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
-    DBGrid1: TDBGrid;
-    ADOQuery1: TADOQuery;
-    ADOConnection1: TADOConnection;
-    DataSource1: TDataSource;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure JvPageControl1Change(Sender: TObject);
@@ -627,10 +623,22 @@ begin
   Procedure
   Begin
     Texto       := Clipboard.AsText;
+    Thread := TThread.CreateAnonymousThread(
+    Procedure
+    Begin
       TRY
-
         {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
-          Alias := TAdoConnection.Create(Application);
+          Thread.Synchronize(Thread,
+          Procedure
+          Begin
+            Form := Tform.Create(Self);
+            Form.Width  := 500;
+            Form.Height := 250;
+            Form.Show;
+            Form.BorderStyle := bsSizeable;
+          End);
+          coInitialize(nil);
+          Alias := TAdoConnection.Create(Form);
           Alias.Attributes     := [];
           //Com xaCommitRetaining após commitar ele abre uma nova transação,
           //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
@@ -677,11 +685,6 @@ begin
                         'WHERE A.Text like ''%'+Texto+'%''';
             DS := TDataSource.Create(Form);
             DS.DataSet := Consultant;
-            Form := Tform.Create(Self);
-            Form.Width  := 500;
-            Form.Height := 250;
-            Form.Show;
-            Form.BorderStyle := bsSizeable;
             DBGrid  := TDBGrid.Create(Form);
             with DBGrid do begin
               Parent := Form;
@@ -711,27 +714,21 @@ begin
               DBGrid.Columns[2].Width:=65;
             end;
             Open;
-              Application.BringToFront;
-            {$Region 'Libera objeto Query da memória'}
-              Free;
-            {$EndRegion}
+            Application.BringToFront;
           end;
         {$EndRegion}
-
-        {$Region 'Libera objeto de conexão da memória'}
-          Alias.Free;
-        {$EndRegion}
       FINALLY
-          {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
-            SetTimeOut(
-              Procedure
-              begin
-                VerificarCamposDaTabelaAtivo := False;
-              End,
-            1000);
-          {$EndRegion}
+        {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
+          SetTimeOut(
+            Procedure
+            begin
+              VerificarCamposDaTabelaAtivo := False;
+            End,
+          1000);
+        {$EndRegion}
       END;
-
+    End);
+    Thread.Start;
   end,
   100);
 end;

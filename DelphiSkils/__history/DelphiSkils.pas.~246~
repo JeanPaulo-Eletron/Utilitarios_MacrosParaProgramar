@@ -605,6 +605,8 @@ var
   Texto: String;
   Alias:      TADOConnection;
   Consultant: TADOQuery;
+  Form: TForm;
+  DS: TDataSource;
 begin
   {$Region 'Verificar se já está ativo'}
     if VerificarCamposDaTabelaAtivo
@@ -621,14 +623,15 @@ begin
   Procedure
   Begin
     Texto       := Clipboard.AsText;
-    Thread := TThread.CreateAnonymousThread(
-    procedure
-    begin
       TRY
 
         {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
-          CoInitialize(nil);
-          Alias := TAdoConnection.Create(Application);
+          Form := Tform.Create(Self);
+          Form.Width  := 500;
+          Form.Height := 250;
+          Form.Show;
+          Form.BorderStyle := bsSizeable;
+          Alias := TAdoConnection.Create(Form);
           Alias.Attributes     := [];
           //Com xaCommitRetaining após commitar ele abre uma nova transação,
           //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
@@ -673,62 +676,41 @@ begin
                         'FROM syscomments A (nolock)'+FimLinhaStr+
                         'JOIN sysobjects B (nolock) on A.Id = B.Id'+FimLinhaStr+
                         'WHERE A.Text like ''%'+Texto+'%''';
+            DS := TDataSource.Create(Form);
+            DS.DataSet := Consultant;
+            DBGrid  := TDBGrid.Create(Form);
+            with DBGrid do begin
+              Parent := Form;
+              Align := alClient;
+              Name := 'Grid';
+              DataSource := DS;
+              Visible := True;
+              Left    := 0;
+              Top     := 0;
+              DBGrid.Columns.Insert(0);
+              DBGrid.Columns[0].FieldName:='Procedimento';
+              DBGrid.Columns[0].Title.Caption:='Procedimento';
+              DBGrid.Columns[0].Title.Alignment := taCenter;
+              DBGrid.Columns[0].Title.Font.Style := [fsBold];
+              DBGrid.Columns[0].Width:=155;
+              DBGrid.Columns.Insert(1);
+              DBGrid.Columns[1].FieldName:='Nome_Do_Procedimento';
+              DBGrid.Columns[1].Title.Caption:='Nome';
+              DBGrid.Columns[1].Title.Alignment := taCenter;
+              DBGrid.Columns[1].Title.Font.Style := [fsBold];
+              DBGrid.Columns[1].Width:=200;
+              DBGrid.Columns.Insert(2);
+              DBGrid.Columns[2].FieldName:='Conteudo';
+              DBGrid.Columns[2].Title.Caption:='Conteudo';
+              DBGrid.Columns[2].Title.Alignment := taCenter;
+              DBGrid.Columns[2].Title.Font.Style := [fsBold];
+              DBGrid.Columns[2].Width:=65;
+            end;
             Open;
-            Thread.Synchronize(Thread,
-            Procedure
-            var Form: TForm;
-            DS: TDataSource;
-            Begin
-              Form := Tform.Create(Self);
-              DS := TDataSource.Create(Form);
-              DS.DataSet := Consultant;
-              DS.Enabled := True;
-              Form.Width  := 500;
-              Form.Height := 250;
-              Form.Show;
-              Form.BorderStyle := bsSizeable;
-              DBGrid  := TDBGrid.Create(Form);
-              with DBGrid do begin
-                Parent := Form;
-                Align := alClient;
-                Name := 'Grid';
-                DataSource := DS;
-                Visible := True;
-                Left    := 0;
-                Top     := 0;
-                DBGrid.Columns.Insert(0);
-                DBGrid.Columns[0].FieldName:='Procedimento';
-                DBGrid.Columns[0].Title.Caption:='Procedimento';
-                DBGrid.Columns[0].Title.Alignment := taCenter;
-                DBGrid.Columns[0].Title.Font.Style := [fsBold];
-                DBGrid.Columns[0].Width:=155;
-                DBGrid.Columns.Insert(1);
-                DBGrid.Columns[1].FieldName:='Nome_Do_Procedimento';
-                DBGrid.Columns[1].Title.Caption:='Nome';
-                DBGrid.Columns[1].Title.Alignment := taCenter;
-                DBGrid.Columns[1].Title.Font.Style := [fsBold];
-                DBGrid.Columns[1].Width:=200;
-                DBGrid.Columns.Insert(2);
-                DBGrid.Columns[2].FieldName:='Conteudo';
-                DBGrid.Columns[2].Title.Caption:='Conteudo';
-                DBGrid.Columns[2].Title.Alignment := taCenter;
-                DBGrid.Columns[2].Title.Font.Style := [fsBold];
-                DBGrid.Columns[2].Width:=65;
-              end;
-              Application.BringToFront;
-            End);
-            {$Region 'Libera objeto Query da memória'}
-              Free;
-            {$EndRegion}
+            Application.BringToFront;
           end;
         {$EndRegion}
-
-        {$Region 'Libera objeto de conexão da memória'}
-          Alias.Free;
-        {$EndRegion}
       FINALLY
-        Thread.Synchronize(Thread,
-        procedure begin
           {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
             SetTimeOut(
               Procedure
@@ -737,12 +719,8 @@ begin
               End,
             1000);
           {$EndRegion}
-        end);
       END;
 
-    end
-    );
-    Thread.Start;
   end,
   100);
 end;

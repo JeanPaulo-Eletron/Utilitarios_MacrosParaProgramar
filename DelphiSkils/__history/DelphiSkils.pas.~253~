@@ -605,6 +605,8 @@ var
   Texto: String;
   Alias:      TADOConnection;
   Consultant: TADOQuery;
+  Form: TForm;
+  DS: TDataSource;
 begin
   {$Region 'Verificar se já está ativo'}
     if VerificarCamposDaTabelaAtivo
@@ -622,13 +624,21 @@ begin
   Begin
     Texto       := Clipboard.AsText;
     Thread := TThread.CreateAnonymousThread(
-    procedure
-    begin
+    Procedure
+    Begin
       TRY
-
         {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
-          CoInitialize(nil);
-          Alias := TAdoConnection.Create(Application);
+          Thread.Synchronize(Thread,
+          Procedure
+          Begin
+            Form := Tform.Create(Self);
+            Form.Width  := 500;
+            Form.Height := 250;
+            Form.Show;
+            Form.BorderStyle := bsSizeable;
+          End);
+          coInitialize(nil);
+          Alias := TAdoConnection.Create(Form);
           Alias.Attributes     := [];
           //Com xaCommitRetaining após commitar ele abre uma nova transação,
           //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
@@ -673,20 +683,11 @@ begin
                         'FROM syscomments A (nolock)'+FimLinhaStr+
                         'JOIN sysobjects B (nolock) on A.Id = B.Id'+FimLinhaStr+
                         'WHERE A.Text like ''%'+Texto+'%''';
-            Open;
+            DS := TDataSource.Create(Form);
+            DS.DataSet := Consultant;
             Thread.Synchronize(Thread,
             Procedure
-            var Form: TForm;
-          DS: TDataSource;
             Begin
-              Form := Tform.Create(Self);
-              DS := TDataSource.Create(Form);
-              DS.DataSet := Consultant;
-              DS.Enabled := True
-              Form.Width  := 500;
-              Form.Height := 250;
-              Form.Show;
-              Form.BorderStyle := bsSizeable;
               DBGrid  := TDBGrid.Create(Form);
               with DBGrid do begin
                 Parent := Form;
@@ -715,33 +716,22 @@ begin
                 DBGrid.Columns[2].Title.Font.Style := [fsBold];
                 DBGrid.Columns[2].Width:=65;
               end;
+              Open;
               Application.BringToFront;
             End);
-            {$Region 'Libera objeto Query da memória'}
-              Free;
-            {$EndRegion}
           end;
         {$EndRegion}
-
-        {$Region 'Libera objeto de conexão da memória'}
-          Alias.Free;
-        {$EndRegion}
       FINALLY
-        Thread.Synchronize(Thread,
-        procedure begin
-          {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
-            SetTimeOut(
-              Procedure
-              begin
-                VerificarCamposDaTabelaAtivo := False;
-              End,
-            1000);
-          {$EndRegion}
-        end);
+        {$Region 'Setar TimeOut para reabilitar uso da funcionalidade'}
+          SetTimeOut(
+            Procedure
+            begin
+              VerificarCamposDaTabelaAtivo := False;
+            End,
+          1000);
+        {$EndRegion}
       END;
-
-    end
-    );
+    End);
     Thread.Start;
   end,
   100);
