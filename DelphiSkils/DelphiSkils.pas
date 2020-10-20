@@ -684,7 +684,8 @@ begin
                         'JOIN sysobjects B (nolock) on A.Id = B.Id'+FimLinhaStr+
                         'WHERE A.Text like ''%'+Texto+'%''';
             DS := TDataSource.Create(Form);
-            DS.DataSet := Consultant;           amigos
+            DS.DataSet := Consultant;
+            Open;
             Thread.Synchronize(Thread,
             Procedure
             Begin
@@ -693,30 +694,29 @@ begin
                 Parent := Form;
                 Align := alClient;
                 Name := 'Grid';
-                DataSource := DS;
                 Visible := True;
                 Left    := 0;
                 Top     := 0;
-                DBGrid.Columns.Insert(0);
-                DBGrid.Columns[0].FieldName:='Procedimento';
-                DBGrid.Columns[0].Title.Caption:='Procedimento';
-                DBGrid.Columns[0].Title.Alignment := taCenter;
-                DBGrid.Columns[0].Title.Font.Style := [fsBold];
-                DBGrid.Columns[0].Width:=155;
-                DBGrid.Columns.Insert(1);
-                DBGrid.Columns[1].FieldName:='Nome_Do_Procedimento';
-                DBGrid.Columns[1].Title.Caption:='Nome';
-                DBGrid.Columns[1].Title.Alignment := taCenter;
-                DBGrid.Columns[1].Title.Font.Style := [fsBold];
-                DBGrid.Columns[1].Width:=200;
-                DBGrid.Columns.Insert(2);
-                DBGrid.Columns[2].FieldName:='Conteudo';
-                DBGrid.Columns[2].Title.Caption:='Conteudo';
-                DBGrid.Columns[2].Title.Alignment := taCenter;
-                DBGrid.Columns[2].Title.Font.Style := [fsBold];
-                DBGrid.Columns[2].Width:=65;
+                DataSource := DS;
+                Columns.Insert(0);
+                Columns[0].FieldName:='Procedimento';
+                Columns[0].Title.Caption:='Procedimento';
+                Columns[0].Title.Alignment := taCenter;
+                Columns[0].Title.Font.Style := [fsBold];
+                Columns[0].Width:=155;
+                Columns.Insert(1);
+                Columns[1].FieldName:='Nome_Do_Procedimento';
+                Columns[1].Title.Caption:='Nome';
+                Columns[1].Title.Alignment := taCenter;
+                Columns[1].Title.Font.Style := [fsBold];
+                Columns[1].Width:=200;
+                Columns.Insert(2);
+                Columns[2].FieldName:='Conteudo';
+                Columns[2].Title.Caption:='Conteudo';
+                Columns[2].Title.Alignment := taCenter;
+                Columns[2].Title.Font.Style := [fsBold];
+                Columns[2].Width:=65;
               end;
-              Open;
               Application.BringToFront;
             End);
           end;
