@@ -1,0 +1,23 @@
+unit HelpersPadrao;
+
+interface
+
+uses Data.Win.ADODB;
+
+Type
+  TADOConnectionHelper = Class Helper for TADOConnection
+    published
+    Function Attributes(Value: TXactAttributes):TADOConnection;
+  End;
+implementation
+
+{ TADOConnectionHelper }
+
+function TADOConnectionHelper.Attributes(
+  Value: TXactAttributes): TADOConnection;
+begin
+  Data.Win.ADODB(Self).Attributes := Value;
+  Result := Self;
+end;
+
+end.

@@ -3,7 +3,8 @@ program Project1;
 uses
   Vcl.Forms,
   DelphiSkils in 'DelphiSkils.pas' {FormMain},
-  Utilitarios in 'Utilitarios.pas';
+  Utilitarios in 'Utilitarios.pas',
+  HelpersPadrao in 'HelpersPadrao.pas';
 
 {$R *.res}
 

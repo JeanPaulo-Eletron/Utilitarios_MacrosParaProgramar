@@ -48,10 +48,10 @@ type
 
 var
   FormMain: TFormMain;
-const
-  FimLinhaStr: String = #13+#10;
+
 implementation
 
+uses HelpersPadrao;
 {$R *.dfm}
 
 procedure TFormMain.EditConfiguraConexaoExit(Sender: TObject);
@@ -79,6 +79,7 @@ procedure TFormMain.FormCreate(Sender: TObject);
 {$Region 'var ...'}
   var
     TimerTeclasPressionadas: TTimeOut;
+    Qry: TAdoQuery;
 {$EndRegion}
 begin
   JvPageControl1.ActivePageIndex := 0;
@@ -639,10 +640,9 @@ begin
           End);
           coInitialize(nil);
           Alias := TAdoConnection.Create(Form);
-          Alias.Attributes     := [];
+          Alias.Attributes([]).CommandTimeout := 1;;
           //Com xaCommitRetaining após commitar ele abre uma nova transação,
           //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
-          Alias.CommandTimeout := 1;
           //Se o comando demorar mais de 1 segundos ele aborta
           Alias.Connected      := False;
           //A conexão deve vir inicialmente fechada
@@ -766,7 +766,7 @@ begin
             pt: TPoint;
             X: Integer;
             TamanhoMaxString: integer;
-            SELECT: String;
+            SELECT_: String;
             TABELAOUCAMPOOUPROCEDIMENTOS: String;
             Thread: TThread;
       {$EndRegion}
@@ -784,13 +784,12 @@ begin
               {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
                 CoInitialize(nil);
                 Alias := TAdoConnection.Create(Application);
-                Alias.Attributes     := [];
-                //Com xaCommitRetaining após commitar ele abre uma nova transação,
-                //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
-                Alias.CommandTimeout := 1;
-                //Se o comando demorar mais de 1 segundos ele aborta
                 Alias.Connected      := False;
                 //A conexão deve vir inicialmente fechada
+                //Com xaCommitRetaining após commitar ele abre uma nova transação,
+                //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
+                Alias.Attributes([]).CommandTimeout := 1;
+                //Se o comando demorar mais de 1 segundos ele aborta
                 Alias.ConnectionTimeout := 15;
                 //Se demorar mais de 15 segundos para abrir a conexão ele aborta
                 Alias.CursorLocation := clUseServer;
@@ -818,18 +817,18 @@ begin
                   Connection := Alias;
                   TABELAOUCAMPOOUPROCEDIMENTOS := 'TABELA';
                   {$Region 'Montar SELECT'}
-                    SELECT        := 'Select'+FimLinhaStr+
-                                     'object_name(object_id) as Tabela,'+FimLinhaStr+
-                                     'sc.name as Campo,'+FimLinhaStr+
-                                     'st.name as Tipo,'+FimLinhaStr+
-                                     'sc.max_length as tamanho,'+FimLinhaStr+
-                                     'case sc.is_nullable when 0 then ''NÃO'' else ''SIM'' end as PermiteNulo'+FimLinhaStr+
-                                     'From'+FimLinhaStr+
-                                     'sys.columns sc'+FimLinhaStr+
-                                     'Inner Join'+FimLinhaStr+
-                                     'sys.types st On st.system_type_id = sc.system_type_id and st.user_type_id = sc.user_type_id'+FimLinhaStr+
-                                     'where sc.name like @pesquisaCampo and ( (object_name(object_id) = @pesquisaTabela) or (object_name(object_id) like (@pesquisaTabela+''_'')))'+FimLinhaStr+
-                                     'order by sc.is_nullable, sc.name';
+                    SELECT_        := 'Select'+FimLinhaStr+
+                                      'object_name(object_id) as Tabela,'+FimLinhaStr+
+                                      '  sc.name as Campo,'+FimLinhaStr+
+                                      '  st.name as Tipo,'+FimLinhaStr+
+                                      '  sc.max_length as tamanho,'+FimLinhaStr+
+                                      '  case sc.is_nullable when 0 then ''NÃO'' else ''SIM'' end as PermiteNulo'+FimLinhaStr+
+                                      'From'+FimLinhaStr+
+                                      '  sys.columns sc'+FimLinhaStr+
+                                      'Inner Join'+FimLinhaStr+
+                                      '  sys.types st On st.system_type_id = sc.system_type_id and st.user_type_id = sc.user_type_id'+FimLinhaStr+
+                                      'where sc.name like @pesquisaCampo and ( (object_name(object_id) = @pesquisaTabela) or (object_name(object_id) like (@pesquisaTabela+''_'')))'+FimLinhaStr+
+                                      'order by sc.is_nullable, sc.name';
                   {$EndRegion}
 
                   {$Region 'Colocar SELECT NA QUERY'}
@@ -838,7 +837,7 @@ begin
                                      'set @pesquisaCampo  = ''%'''+FimLinhaStr+
                                      'set @pesquisaTabela = '''+Texto+''''+FimLinhaStr+
                                      ''+FimLinhaStr+
-                                     SELECT;
+                                     SELECT_;
                   {$EndRegion}
 
                   Open;
@@ -850,7 +849,7 @@ begin
                                        'set @pesquisaTabela = ''%'''+FimLinhaStr+
                                        'set @pesquisaCampo  = '''+Texto+''''+FimLinhaStr+
                                        ''+FimLinhaStr+
-                                       SELECT;
+                                       SELECT_;
                       Open;
                       {$Region 'Se vazio ir ao fim do with'}
                         if IsEmpty then begin

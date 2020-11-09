@@ -1,0 +1,35 @@
+unit HelpersPadrao;
+
+interface
+
+uses Data.Win.ADODB, Winapi.OleDB;
+
+Type
+  TADOConnectionHelper = Class Helper for TADOConnection
+    published
+      Function Attributes(Value: TXactAttributes):TADOConnection;
+  End;
+Const
+  XactAttributeValues: array[TXactAttribute] of TOleEnum = (adXactCommitRetaining,
+    adXactAbortRetaining);
+implementation
+
+{ TADOConnectionHelper }
+
+function TADOConnectionHelper.Attributes(
+  Value: TXactAttributes): TADOConnection;
+var
+  Attributes: LongWord;
+  Xa: TXactAttribute;
+begin
+  Attributes := 0;
+  if Value <> [] then
+    for Xa := Low(TXactAttribute) to High(TXactAttribute) do
+      if Xa in Value then
+        Attributes := Attributes + XactAttributeValues[Xa];
+
+  ConnectionObject.Attributes := Attributes;
+  Result := Self;
+end;
+
+end.

@@ -3,7 +3,7 @@ unit Utilitarios;
 interface
 
 uses Windows, SysUtils, Generics.Collections,  Classes, JvADOQuery, JvBaseDBThreadedDataset, Data.DB, Vcl.StdCtrls,
-     Data.Win.ADODB, Graphics, Vcl.Forms, Dialogs, ActiveX;
+     Data.Win.ADODB, Graphics, Vcl.Forms, Dialogs, ActiveX, HelpersPadrao, RTTI, StrUtils;
 
 Type
   TCallBack = reference to procedure;
@@ -93,9 +93,29 @@ Type
 
 //--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//--//
 
+Type
+  TCampo  = (Nome);
+  TTabela = (Amigos);
+  AdoQueryDSLHelper = Class Helper for TAdoQuery
+    Function Create_: TAdoQuery;OverLoad;
+    Function Create_(AOwner: TComponent): TAdoQuery;OverLoad;
+    Function Select: TAdoQuery;
+    Function Campos(Campo: TCampo): TAdoQuery;overload;
+    Function Campos(Campo: String): TAdoQuery;overload;
+    Function From(Tabela: TTabela): TAdoQuery;overload;
+    Function From(Tabela: String): TAdoQuery;overload;
+    Function Where(Condicao: String): TAdoQuery;
+    Function And_(Condicao: String): TAdoQuery;
+    Function OR_(Condicao: String): TAdoQuery;
+    Function InnerJoin(Tabela: TTabela; Condicoes: String): TAdoQuery;OverLoad;
+    Function InnerJoin(Tabela: String; Condicoes: String): TAdoQuery;OverLoad;
+  end;
+
 var
   TimeOut  : TList<TTimeOut>;
   QtdeTimers : Integer;
+const
+  FimLinhaStr: String = #13;
 implementation
 
 Function  ExecutaSQLAssync(SQLText : String; Connection: TAdoConnection):String;overload;
@@ -718,10 +738,9 @@ begin
     {$Region 'Criar objeto de conexão com o banco e configura a conexão'}
       CoInitialize(nil);
       Alias := TAdoConnection.Create(Application);
-      Alias.Attributes     := [];
       //Com xaCommitRetaining após commitar ele abre uma nova transação,
       //Com xaAbortRetaining  após abordar ele abre uma nova transação, custo muito alto.
-      Alias.CommandTimeout := 0;
+      Alias.Attributes([]).CommandTimeout := 0;
       //Se o comando demorar mais de 1 segundos ele aborta
       Alias.Connected      := False;
       //A conexão deve vir inicialmente fechada
@@ -747,6 +766,99 @@ begin
     {$EndRegion}
   end
   ).Start;
+end;
+
+
+function sBreakApart(BaseString, BreakString: string; StringList: TStringList): TStringList;
+  var
+    EndOfCurrentString: byte;
+    TempStr: string;
+begin
+  repeat
+    EndOfCurrentString := Pos(BreakString, BaseString);
+    if EndOfCurrentString = 0
+      then StringList.add(BaseString)
+      else StringList.add(Copy(BaseString, 1, EndOfCurrentString - 1));
+    BaseString := Copy(BaseString, EndOfCurrentString + length(BreakString), length(BaseString) - EndOfCurrentString);
+  until EndOfCurrentString = 0;
+  result := StringList;
+end;
+
+{ AdoQueryDSLHelper }
+
+function AdoQueryDSLHelper.Select: TAdoQuery;
+begin
+  SQL.Add('Select ');
+  Result := Self;
+end;
+
+function AdoQueryDSLHelper.Campos(Campo: TCampo): TAdoQuery;
+begin
+  Result := Campos(TRttiEnumerationType.GetName(Campo));
+end;
+
+function AdoQueryDSLHelper.Campos(Campo: String): TAdoQuery;
+var
+  PalavrasNoSQL: TStringList;
+begin
+  PalavrasNoSQL := TStringList.create;
+  sBreakApart(SQL.Text, ' ', PalavrasNoSQL);
+  SQL.Text := Copy(SQL.Text,1,Length(SQL.Text)-2) + IFTHEN(PalavrasNoSQL.Strings[PalavrasNoSQL.Count-2] <> 'Select', ',');
+  SQL.Add('  '+Campo);
+  Result := Self;
+end;
+
+function AdoQueryDSLHelper.Create_: TAdoQuery;
+begin
+  Result := Create_(Application);
+end;
+
+function AdoQueryDSLHelper.Create_(AOwner: TComponent): TAdoQuery;
+begin
+  Result := TAdoQuery.Create(AOwner);
+end;
+
+function AdoQueryDSLHelper.From(Tabela: TTabela): TAdoQuery;
+begin
+  result := From(TRttiEnumerationType.GetName(Tabela));
+end;
+
+function AdoQueryDSLHelper.From(Tabela: String): TAdoQuery;
+begin
+  SQL.Add('From ' + Tabela);
+  Result := Self;
+end;
+
+function AdoQueryDSLHelper.Where(Condicao: String): TAdoQuery;
+begin
+  SQL.Add('  Where ' + Condicao);
+  Result := Self;
+end;
+
+function AdoQueryDSLHelper.And_(Condicao: String): TAdoQuery;
+begin
+  SQL.Add('    and ' + Condicao);
+  Result := Self;
+end;
+
+function AdoQueryDSLHelper.OR_(Condicao: String): TAdoQuery;
+begin
+  SQL.Text := Copy(SQL.Text, 1, lastdelimiter('Where', SQL.Text)+1)+' ('+FimLinhaStr+'       '+Copy(SQL.Text, lastdelimiter('Where', SQL.Text)+1, Length(SQL.Text) - lastdelimiter('Where', SQL.Text));
+  SQL.Text := SQL.Text + '         ) ';
+  SQL.Add('     or ('+FimLinhaStr+'        '+ Condicao +FimLinhaStr+'       )');
+  Result := Self;
+end;
+
+function AdoQueryDSLHelper.InnerJoin(Tabela: TTabela;
+                                     Condicoes: String): TAdoQuery;
+begin
+  Result := InnerJoin(TRttiEnumerationType.GetName(Tabela), Condicoes);
+end;
+
+function AdoQueryDSLHelper.InnerJoin(Tabela, Condicoes: String): TAdoQuery;
+begin
+  SQL.Add('  on '+Condicoes);
+  Result := Self;
 end;
 
 end.
