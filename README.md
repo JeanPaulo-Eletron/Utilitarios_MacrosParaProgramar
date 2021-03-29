@@ -1,3 +1,5 @@
+** DESCONTINUADO, VISITE O REPOSITÓRIO DO "POWER UTILS", ONDE FICA A CONTINUAÇÃO REFATORADA INTEIRAMENTE E REMODELADA EM PARTES **
+
 # Utilitários
 
 Esse repositório tem por objetivo aumentar minha produtividade no dia a dia da programação, pemitindo-me fazer mais com menos.
